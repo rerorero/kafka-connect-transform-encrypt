@@ -7,6 +7,8 @@ version = "0.1.0"
 
 ext {
   kafkaVersion = "2.8.0"
+  junitJupiterVersion = '5.7.1'
+  testContainerVersion = '1.15.3'
 }
 
 repositories {
@@ -14,15 +16,34 @@ repositories {
 }
 
 dependencies {
-  // Use JUnit test framework.
-  testImplementation 'junit:junit:4.13.1'
-
   // This dependency is exported to consumers, that is to say found on their compile classpath.
   api 'org.apache.commons:commons-math3:3.6.1'
 
   // This dependency is used internally, and not exposed to consumers on their own compile classpath.
   implementation 'com.google.guava:guava:30.0-jre'
 
-  compileOnly("org.apache.kafka:connect-api:${kafkaVersion}")
-  implementation("org.apache.kafka:connect-transforms:${kafkaVersion}")
+  compileOnly "org.apache.kafka:connect-api:${kafkaVersion}"
+  implementation "org.apache.kafka:connect-transforms:${kafkaVersion}"
+  implementation 'com.bettercloud:vault-java-driver:5.1.0'
+
+  // for testing
+  testImplementation "org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}"
+  testImplementation "org.junit.jupiter:junit-jupiter-params:${junitJupiterVersion}"
+  testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:${junitJupiterVersion}"
+  testImplementation "org.testcontainers:testcontainers:${testContainerVersion}"
+  testImplementation "org.testcontainers:junit-jupiter:${testContainerVersion}"
+  testImplementation "org.testcontainers:vault:${testContainerVersion}"
+  testImplementation "org.mockito:mockito-core:3.+"
+  testRuntimeOnly('org.slf4j:slf4j-simple:1.7.30')
+}
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
+  withSourcesJar()
+  withJavadocJar()
+}
+
+test {
+  useJUnitPlatform()
 }

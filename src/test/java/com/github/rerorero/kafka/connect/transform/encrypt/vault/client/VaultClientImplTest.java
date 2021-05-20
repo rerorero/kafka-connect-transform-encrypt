@@ -47,7 +47,7 @@ public class VaultClientImplTest {
         VaultClientImpl sut = null;
         try {
             VaultConfig config = new VaultConfig()
-                    .address(String.format("http://%s:%d", container.getHost(), container.getMappedPort(8200)))
+                    .address(String.format("http://%s:%d", container.getHost(), container.getFirstMappedPort()))
                     .token(VAULT_TOKEN)
                     .build();
             sut = new VaultClientImpl(new Vault(config, 1));

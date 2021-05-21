@@ -144,7 +144,7 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
 
     abstract R newRecord(R base, Object value);
 
-    static class Key<R extends ConnectRecord<R>> extends Transform<R> {
+    public static class Key<R extends ConnectRecord<R>> extends Transform<R> {
         @Override
         protected Schema operatingSchema(R record) {
             return record.keySchema();
@@ -161,7 +161,7 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
         }
     }
 
-    static class Value<R extends ConnectRecord<R>> extends Transform<R> {
+    public static class Value<R extends ConnectRecord<R>> extends Transform<R> {
         @Override
         protected Schema operatingSchema(R record) {
             return record.valueSchema();

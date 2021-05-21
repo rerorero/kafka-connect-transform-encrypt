@@ -43,16 +43,16 @@ public abstract class Config {
 
     public static final ConfigDef DEF = new ConfigDef()
             // general
-            .define(SERVICE, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE, modeValidator,
+            .define(SERVICE, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE, serviceValidator,
                     ConfigDef.Importance.HIGH, "Name of the service that provides encryption.")
             .define(MODE, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE, modeValidator,
                     ConfigDef.Importance.HIGH, "Specifies the mode, " + MODE_DECRYPT + " or " + MODE_DECRYPT + ".")
             .define(FIELDS, ConfigDef.Type.LIST, new ArrayList<String>(),
                     ConfigDef.Importance.HIGH, "Names of the fields to be encrypted or decrypted. "
-                    + "Only string and byte field in the root are supported for now.")
+                            + "Only string and byte field in the root are supported for now.")
             .define(FIELD_ENCODING_IN, ConfigDef.Type.STRING, FIELD_ENCODING_STRING,
                     ConfigDef.Importance.LOW, "Encoding of input field before encrypted or decrypted.")
-            .define(FIELD_ENCODING_OUT, ConfigDef.Type.STRING, FIELD_ENCODING_STRING,
+            .define(FIELD_ENCODING_OUT, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.LOW, "Encoding of output field after encrypted or decrypted.")
             // Vault
             .define(VAULT_URL, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE,
@@ -109,21 +109,20 @@ public abstract class Config {
             this.fieldSet = new HashSet<>(conf.getList(FIELDS));
             this.cryptoConf = new CryptoConfig(
                     encodingOf(conf.getString(FIELD_ENCODING_IN)),
-                    encodingOf(conf.getString(FIELD_ENCODING_OUT))
+                    encodingOf(conf.getString(FIELD_ENCODING_OUT) != null ? conf.getString(FIELD_ENCODING_OUT) : conf.getString(FIELD_ENCODING_IN))
             );
 
-            switch (conf.getString(SERVICE)) {
-                case SERVICE_VAULT:
-                    this.service = vaultService(conf);
-                default:
-                    throw new ConfigException(SERVICE, conf.getString(SERVICE), "Unknown service");
+            if (conf.getString(SERVICE).equals(SERVICE_VAULT)) {
+                this.service = vaultService(conf);
+            } else {
+                throw new ConfigException(SERVICE, conf.getString(SERVICE), "unknown service");
             }
         }
 
         private Service vaultService(SimpleConfig conf) {
             final VaultConfig vc = new VaultConfig().address(conf.getString(VAULT_URL));
-            if (conf.getString(VAULT_TOKEN) != null) {
-                vc.token(conf.getString(VAULT_TOKEN));
+            if (conf.getPassword(VAULT_TOKEN) != null) {
+                vc.token(conf.getPassword(VAULT_TOKEN).value());
             }
 
             VaultClient client = null;
@@ -136,10 +135,10 @@ public abstract class Config {
             VaultCryptoConfig vaultConf = new VaultCryptoConfig(
                     cryptoConf,
                     conf.getString(VAULT_KEY_NAME),
-                    Optional.of(conf.getString(VAULT_CONTEXT))
+                    Optional.ofNullable(conf.getString(VAULT_CONTEXT))
             );
 
-            if (conf.getString(MODE) == MODE_ENCRYPT) {
+            if (conf.getString(MODE).equals(MODE_ENCRYPT)) {
                 return new VaultService.EncryptService(client, vaultConf);
             }
             return new VaultService.DecryptService(client, vaultConf);

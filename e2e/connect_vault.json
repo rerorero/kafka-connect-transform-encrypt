@@ -1,0 +1,23 @@
+{
+  "name": "datagen-pageviews",
+  "config": {
+    "connector.class": "io.confluent.kafka.connect.datagen.DatagenConnector",
+    "kafka.topic": "pageviews",
+    "quickstart": "pageviews",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "max.interval": 500,
+    "iterations": 100,
+    "tasks.max": "1",
+
+    "transforms": "encrypt",
+    "transforms.encrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.encrypt.service": "vault",
+    "transforms.encrypt.mode": "encrypt",
+    "transforms.encrypt.fields": "userid,pageid",
+    "transforms.encrypt.vault.url": "http://vault:8200",
+    "transforms.encrypt.vault.token": "dev",
+    "transforms.encrypt.vault.key_name": "mykey"
+  }
+}

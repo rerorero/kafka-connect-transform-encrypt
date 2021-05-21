@@ -4,7 +4,6 @@ import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultConfig;
 import com.bettercloud.vault.VaultException;
 import com.github.rerorero.kafka.connect.transform.encrypt.exception.ClientErrorException;
-import org.junit.ClassRule;
 import org.junit.jupiter.api.*;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.vault.VaultContainer;
@@ -19,11 +18,10 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class VaultClientImplTest {
-    private static final String VAULT_TOKEN = "dev-root";
-    private static final String NORMAL_KEY = "key1";
+    private static final String VAULT_TOKEN = "dev";
+    private static final String NORMAL_KEY = "mykey";
     private static final String CONVERGENT_ENCRYPT_KEY = "key2";
 
-    @ClassRule
     public static VaultContainer container = new VaultContainer<>("vault:latest")
             .withVaultToken(VAULT_TOKEN)
             .waitingFor(Wait.forHttp("/v1/secret/test").forStatusCode(400))

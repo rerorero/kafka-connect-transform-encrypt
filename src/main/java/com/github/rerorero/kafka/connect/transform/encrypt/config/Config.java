@@ -13,10 +13,14 @@ import com.github.rerorero.kafka.connect.transform.encrypt.vault.client.VaultCli
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.transforms.util.SimpleConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public abstract class Config {
+    final static Logger log = LoggerFactory.getLogger(Config.class);
+
     // general configurations
     public static final String SERVICE = "service";
     public static final String SERVICE_VAULT = "vault";
@@ -127,7 +131,7 @@ public abstract class Config {
 
             VaultClient client = null;
             try {
-                client = new VaultClientImpl(new Vault(vc.build()));
+                client = new VaultClientImpl(new Vault(vc.build(), 1));
             } catch (VaultException e) {
                 throw new ConfigException("Unable to create Vault client: " + e.getMessage());
             }

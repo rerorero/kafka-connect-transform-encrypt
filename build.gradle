@@ -26,6 +26,8 @@ dependencies {
   implementation "org.apache.kafka:connect-api:${kafkaVersion}"
   implementation "org.apache.kafka:connect-transforms:${kafkaVersion}"
   implementation 'com.bettercloud:vault-java-driver:5.1.0'
+  implementation 'org.antlr:antlr4-runtime:4.9.2' // TODO: remove?
+  implementation 'com.jayway.jsonpath:json-path:2.5.0'
 
   // for testing
   testImplementation "org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}"

@@ -90,7 +90,7 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
         final Struct updatedValue = new Struct(original.schema());
 
         Map<Field, Item> params = new HashMap<>();
-        for (Field field: original.schema().fields()) {
+        for (Field field : original.schema().fields()) {
             if (fields.contains(field.name())) {
                 Object obj = original.get(field);
                 if (obj != null) {
@@ -106,7 +106,7 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
 
         Map<Field, Item> results = doCrypto(params);
 
-        for (Field field: original.schema().fields()) {
+        for (Field field : original.schema().fields()) {
             Item updated = results.get(field);
             if (updated != null) {
                 Object obj = updated.asObject(cryptoConfig.getOutputEncoding());

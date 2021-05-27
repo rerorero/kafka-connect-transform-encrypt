@@ -15,7 +15,7 @@
     "transforms.encrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
     "transforms.encrypt.service": "vault",
     "transforms.encrypt.mode": "encrypt",
-    "transforms.encrypt.fields": "userid,pageid",
+    "transforms.encrypt.fields": "$.userid,$.pageid",
     "transforms.encrypt.vault.url": "http://vault:8200",
     "transforms.encrypt.vault.token": "dev",
     "transforms.encrypt.vault.key_name": "mykey"

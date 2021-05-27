@@ -17,7 +17,7 @@ public class StructSupport extends Support {
     private static final ParserListener.TaskGen<GetTaskState> getTaskGen = new GetTaskGen();
     private static final ParserListener.TaskGen<UpdateTaskState> updateTaskGen = new UpdateTaskGen();
 
-    public static class Getter {
+    public static class Getter implements JsonPath.Getter<Struct> {
         private final List<ParserListener.Task<GetTaskState>> tasks;
 
         Getter(List<ParserListener.Task<GetTaskState>> tasks) {
@@ -31,13 +31,13 @@ public class StructSupport extends Support {
          * @return Map of field paths and values for retrieved values
          */
         public Map<String, Object> run(Struct s) {
-            GetTaskState state = new GetTaskState(s);
+            final GetTaskState state = new GetTaskState(s);
             runTasks(state, tasks);
             return state.pathMap;
         }
     }
 
-    public static class Updater {
+    public static class Updater implements JsonPath.Updater<Struct>{
         private final List<ParserListener.Task<UpdateTaskState>> tasks;
 
         Updater(List<ParserListener.Task<UpdateTaskState>> tasks) {
@@ -52,11 +52,11 @@ public class StructSupport extends Support {
          * @return a new Struct instance with the passed valueToUpdate applied.
          */
         public Struct run(Struct org, Map<String, Object> valueToUpdate) {
-            Struct updated = copyStruct(org);
+            final Struct updated = copyStruct(org);
             if (valueToUpdate.isEmpty()) {
                 return updated;
             }
-            UpdateTaskState state = new UpdateTaskState(updated, valueToUpdate);
+            final UpdateTaskState state = new UpdateTaskState(updated, valueToUpdate);
             runTasks(state, tasks);
             return updated;
         }
@@ -70,8 +70,7 @@ public class StructSupport extends Support {
      * @return a new task runner to retrieve the values from a Map
      */
     public static Getter newGetter(String jsonPath) {
-        List<ParserListener.Task<GetTaskState>> tasks = parse(jsonPath, getTaskGen);
-        return new Getter(tasks);
+        return new Getter(parse(jsonPath, getTaskGen));
     }
 
     /**
@@ -82,19 +81,18 @@ public class StructSupport extends Support {
      * @return a new task runner to update the values in a Map
      */
     public static Updater newUpdater(String jsonPath) {
-        List<ParserListener.Task<UpdateTaskState>> tasks = parse(jsonPath, updateTaskGen);
-        return new Updater(tasks);
+        return new Updater(parse(jsonPath, updateTaskGen));
     }
 
     private static Struct copyStruct(Struct org) {
         Struct newStruct = new Struct(org.schema());
         for (Field field : org.schema().fields()) {
-            Object obj = org.get(field);
+            final Object obj = org.get(field);
             if (obj == null) {
                 continue;
             }
 
-            Schema fieldSchema = field.schema();
+            final Schema fieldSchema = field.schema();
             switch (fieldSchema.type()) {
                 case INT8:
                 case INT16:
@@ -164,15 +162,20 @@ public class StructSupport extends Support {
     }
 
     private static Map<String, Object> mapObjectSubscript(Map<String, Object> pathMap, String keyName, Function<ObjectSubUpdateParam, Object> onSubscript) {
-        Map<String, Object> updated = new HashMap<>();
+        final Map<String, Object> updated = new HashMap<>();
 
         pathMap.forEach((path, cur) -> {
-            String childPath = pathOfObjectSub(path, keyName);
+            final String childPath = pathOfObjectSub(path, keyName);
             if (cur instanceof Struct == false) {
                 throw new JsonPathException("field '" + childPath + "' is not a Struct but " + cur.getClass());
             }
             try {
-                Object child = onSubscript.apply(new ObjectSubUpdateParam(childPath, keyName, (Struct) cur));
+                Struct parent = (Struct) cur;
+                // If the specified field is missing, skip it without error. This is the same behavior as Map.
+                if (parent.schema().field(keyName) == null) {
+                    return;
+                }
+                final Object child = onSubscript.apply(new ObjectSubUpdateParam(childPath, keyName, parent));
                 if (child != null) {
                     updated.put(childPath, child);
                 }
@@ -220,7 +223,7 @@ public class StructSupport extends Support {
                     state.pathMap = mapObjectSubscript(state.pathMap, keyName, param -> {
                         // if path is found in newValue, modify the Struct in the state
                         // otherwise just get the field and return it.
-                        Object newVal = state.getNewValue(param.path);
+                        final Object newVal = state.getNewValue(param.path);
                         if (newVal != null) {
                             param.parent.put(param.key, newVal);
                             return newVal;
@@ -234,7 +237,7 @@ public class StructSupport extends Support {
         public ParserListener.Task<UpdateTaskState> subscriptArray(int index) {
             return state ->
                     state.pathMap = mapSubscriptArray(state.pathMap, index, param -> {
-                        Object newVal = state.getNewValue(param.path);
+                        final Object newVal = state.getNewValue(param.path);
                         if (newVal != null) {
                             param.parent.set(param.index, newVal);
                             return newVal;

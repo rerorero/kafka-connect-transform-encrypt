@@ -3,6 +3,7 @@ package com.github.rerorero.kafka.connect.transform.encrypt.config;
 import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultConfig;
 import com.bettercloud.vault.VaultException;
+import com.bettercloud.vault.json.Json;
 import com.github.rerorero.kafka.connect.transform.encrypt.kms.CryptoConfig;
 import com.github.rerorero.kafka.connect.transform.encrypt.kms.Item;
 import com.github.rerorero.kafka.connect.transform.encrypt.kms.Service;
@@ -10,12 +11,16 @@ import com.github.rerorero.kafka.connect.transform.encrypt.vault.VaultCryptoConf
 import com.github.rerorero.kafka.connect.transform.encrypt.vault.VaultService;
 import com.github.rerorero.kafka.connect.transform.encrypt.vault.client.VaultClient;
 import com.github.rerorero.kafka.connect.transform.encrypt.vault.client.VaultClientImpl;
+import com.github.rerorero.kafka.jsonpath.JsonPathException;
+import com.github.rerorero.kafka.jsonpath.MapSupport;
+import com.github.rerorero.kafka.jsonpath.StructSupport;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.transforms.util.SimpleConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
 import java.util.*;
 
 public abstract class Config {
@@ -52,8 +57,8 @@ public abstract class Config {
             .define(MODE, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE, modeValidator,
                     ConfigDef.Importance.HIGH, "Specifies the mode, " + MODE_DECRYPT + " or " + MODE_DECRYPT + ".")
             .define(FIELDS, ConfigDef.Type.LIST, new ArrayList<String>(),
-                    ConfigDef.Importance.HIGH, "Names of the fields to be encrypted or decrypted. "
-                            + "Only string and byte field in the root are supported for now.")
+                    ConfigDef.Importance.HIGH, "JsonPath expression string to specify the field to be encrypted or decrypted."
+                            + "Multiple paths can be specified separated by commas.")
             .define(FIELD_ENCODING_IN, ConfigDef.Type.STRING, FIELD_ENCODING_STRING,
                     ConfigDef.Importance.LOW, "Encoding of input field before encrypted or decrypted.")
             .define(FIELD_ENCODING_OUT, ConfigDef.Type.STRING, null,
@@ -70,7 +75,7 @@ public abstract class Config {
 
     public abstract Service cryptoService();
 
-    public abstract Set<String> fields();
+    public abstract FieldSelector fieldSelector();
 
     public abstract CryptoConfig cryptoCOnfig();
 
@@ -86,10 +91,25 @@ public abstract class Config {
         throw new ConfigException("Invalid encoding: " + value);
     }
 
+    protected static FieldSelector newFieldSelector(Set<String> jsonPaths) {
+            FieldSelector fs = new FieldSelector();
+            jsonPaths.forEach(path -> {
+                try {
+                    fs.mapGetters.put(path, MapSupport.newGetter(path));
+                    fs.mapUpdaters.put(path, MapSupport.newUpdater(path));
+                    fs.structGetters.put(path, StructSupport.newGetter(path));
+                    fs.structUpdaters.put(path, StructSupport.newUpdater(path));
+                } catch (JsonPathException e) {
+                    throw new ConfigException(FIELDS, path, e.getMessage());
+                }
+            });
+        return fs;
+    }
+
     public static class ConfigImpl extends Config {
         private final Service service;
         private final CryptoConfig cryptoConf;
-        private final Set<String> fieldSet;
+        private final FieldSelector fieldSel;
 
         @Override
         public Service cryptoService() {
@@ -97,8 +117,8 @@ public abstract class Config {
         }
 
         @Override
-        public Set<String> fields() {
-            return fieldSet;
+        public FieldSelector fieldSelector() {
+            return this.fieldSel;
         }
 
         @Override
@@ -110,7 +130,7 @@ public abstract class Config {
             final SimpleConfig conf = new SimpleConfig(DEF, props);
 
             // general configurations
-            this.fieldSet = new HashSet<>(conf.getList(FIELDS));
+            this.fieldSel = newFieldSelector(new HashSet<>(conf.getList(FIELDS)));
             this.cryptoConf = new CryptoConfig(
                     encodingOf(conf.getString(FIELD_ENCODING_IN)),
                     encodingOf(conf.getString(FIELD_ENCODING_OUT) != null ? conf.getString(FIELD_ENCODING_OUT) : conf.getString(FIELD_ENCODING_IN))

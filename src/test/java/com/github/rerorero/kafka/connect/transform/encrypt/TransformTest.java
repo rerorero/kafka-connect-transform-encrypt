@@ -1,12 +1,14 @@
 package com.github.rerorero.kafka.connect.transform.encrypt;
 
 import com.github.rerorero.kafka.connect.transform.encrypt.config.Config;
+import com.github.rerorero.kafka.connect.transform.encrypt.config.FieldSelector;
 import com.github.rerorero.kafka.connect.transform.encrypt.exception.ClientErrorException;
 import com.github.rerorero.kafka.connect.transform.encrypt.exception.ServerErrorException;
 import com.github.rerorero.kafka.connect.transform.encrypt.kms.CryptoConfig;
 import com.github.rerorero.kafka.connect.transform.encrypt.kms.Item;
 import com.github.rerorero.kafka.connect.transform.encrypt.kms.Service;
-import org.apache.kafka.connect.data.Field;
+import com.github.rerorero.kafka.connect.transform.encrypt.util.Pair;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -17,7 +19,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
-import java.nio.charset.Charset;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,30 +38,35 @@ class TransformTest {
         }
     }
 
+    private static final Schema STRUCT_SCHEMA = SchemaBuilder.struct()
+            .field("array", SchemaBuilder.array(Schema.STRING_SCHEMA))
+            .build();
+
     private static final Schema SCHEMA = SchemaBuilder.struct()
             .field("text", Schema.STRING_SCHEMA)
-            .field("text_opt", SchemaBuilder.string().optional().build())
-            .field("text_null", SchemaBuilder.string().optional().build())
-            .field("byte", Schema.BYTES_SCHEMA)
-            .field("byte_opt", SchemaBuilder.bytes().optional().build())
-            .field("byte_null", SchemaBuilder.bytes().optional().build())
+            .field("optional", SchemaBuilder.string().optional())
+            .field("struct", STRUCT_SCHEMA)
             .build();
 
     private static Struct newStruct() {
+        Struct sub = new Struct(STRUCT_SCHEMA);
+        sub.put("array", Arrays.asList("PLAIN_ELEMENT1", "PLAIN_ELEMENT2"));
+
         Struct s = new Struct(SCHEMA);
         s.put("text", "PLAINTEXT");
-        s.put("text_opt", "PLAIN_OPTIONAL_TEXT");
-        s.put("byte", "PLAINBYTE".getBytes(Charset.defaultCharset()));
-        s.put("byte_opt", "PLAIN_OPTIONAL_BYTE".getBytes(Charset.defaultCharset()));
+        s.put("struct", sub);
         return s;
     }
 
     private static Map<String, Object> newMap() {
         Map<String, Object> m = new HashMap();
-        m.put("text", "PLAINTEXT");
-        m.put("text_opt", "PLAIN_OPTIONAL_TEXT");
-        m.put("byte", "PLAINBYTE".getBytes(Charset.defaultCharset()));
-        m.put("byte_opt", "PLAIN_OPTIONAL_BYTE".getBytes(Charset.defaultCharset()));
+        m.put("byte", "plain".getBytes());
+        m.put("struct", new HashMap<String, Object>() {{
+            put("array", Arrays.asList(
+                    "PLAIN_ELEMENT1".getBytes(),
+                    "PLAIN_ELEMENT2".getBytes()
+            ));
+        }});
         return m;
     }
 
@@ -81,8 +87,8 @@ class TransformTest {
             }
 
             @Override
-            public Set<String> fields() {
-                return fields;
+            public FieldSelector fieldSelector() {
+                return newFieldSelector(new HashSet<>(fieldList));
             }
 
             @Override
@@ -96,136 +102,97 @@ class TransformTest {
     }
 
     @Test
-    public void testApplyWithSchemaText() {
-        Transform sut = setUp(Arrays.asList("text", "text_opt", "text_null", "unknown"), Item.Encoding.STRING);
+    public void testApplyWithSchemaTextUsingJsonPath() {
+        Transform sut = setUp(Arrays.asList("$.text", "$.struct.array[*]", "$.unknown"), Item.Encoding.STRING);
 
-        Map<Field, Item> mockedResult = new HashMap<>();
-        mockedResult.put(SCHEMA.field("text"), new Item.StringItem("encrypted_text"));
-        mockedResult.put(SCHEMA.field("text_opt"), new Item.StringItem("encrypted_optional_text"));
-        ArgumentCaptor<Map<Field, Item>> mockArg = ArgumentCaptor.forClass(Map.class);
-        when(mockedService.doCrypto(ArgumentMatchers.<Map<Field, Item>>any())).thenReturn(mockedResult);
-
-        Struct actual = (Struct) sut.apply(record(SCHEMA, newStruct())).value();
-
-        verify(mockedService).doCrypto(mockArg.capture());
-        Map<Field, Item> expectedMockArg = new HashMap<>();
-        expectedMockArg.put(SCHEMA.field("text"), new Item.StringItem("PLAINTEXT"));
-        expectedMockArg.put(SCHEMA.field("text_opt"), new Item.StringItem("PLAIN_OPTIONAL_TEXT"));
-        assertEquals(expectedMockArg, mockArg.getValue());
-
-        assertEquals("encrypted_text", actual.get("text"));
-        assertEquals("encrypted_optional_text", actual.get("text_opt"));
-        assertNull(actual.get("text_null"));
-        assertArrayEquals("PLAINBYTE".getBytes(Charset.defaultCharset()), (byte[]) actual.get("byte"));
-        assertArrayEquals("PLAIN_OPTIONAL_BYTE".getBytes(Charset.defaultCharset()), (byte[]) actual.get("byte_opt"));
-        assertNull(actual.get("byte_null"));
-        assertNull(actual.schema().field("unknown"));
-    }
-
-    @Test
-    public void testApplyWithSchemaBytes() {
-        Transform sut = setUp(Arrays.asList("byte", "byte_opt", "byte_null", "unknown"), Item.Encoding.BINARY);
-
-        Map<Field, Item> mockedResult = new HashMap<>();
-        mockedResult.put(SCHEMA.field("byte"), new Item.BytesItem("encrypted_bytes".getBytes(Charset.defaultCharset())));
-        mockedResult.put(SCHEMA.field("byte_opt"), new Item.BytesItem("encrypted_optional_bytes".getBytes(Charset.defaultCharset())));
-        ArgumentCaptor<Map<Field, Item>> mockArg = ArgumentCaptor.forClass(Map.class);
-        when(mockedService.doCrypto(ArgumentMatchers.<Map<Field, Item>>any())).thenReturn(mockedResult);
+        Map<Pair<String, String>, Item> mockedResult = new HashMap<>();
+        mockedResult.put(new Pair("$.text", "$.text"), new Item.StringItem("encrypted_text"));
+        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[0]"), new Item.StringItem("encrypted_array1"));
+        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[1]"), new Item.StringItem("encrypted_array2"));
+        ArgumentCaptor<Map<Pair<String, String>, Item>> mockArg = ArgumentCaptor.forClass(Map.class);
+        when(mockedService.doCrypto(ArgumentMatchers.<Map<Pair<String, String>, Item>>any())).thenReturn(mockedResult);
 
         Struct actual = (Struct) sut.apply(record(SCHEMA, newStruct())).value();
 
         verify(mockedService).doCrypto(mockArg.capture());
-        Map<Field, Item> expectedMockArg = new HashMap<>();
-        expectedMockArg.put(SCHEMA.field("byte"), new Item.BytesItem("PLAINBYTE".getBytes(Charset.defaultCharset())));
-        expectedMockArg.put(SCHEMA.field("byte_opt"), new Item.BytesItem("PLAIN_OPTIONAL_BYTE".getBytes(Charset.defaultCharset())));
+        Map<Pair<String, String>, Item> expectedMockArg = new HashMap<>();
+        expectedMockArg.put(new Pair("$.text", "$.text"), new Item.StringItem("PLAINTEXT"));
+        expectedMockArg.put(new Pair("$.struct.array[*]", "$.struct.array[0]"), new Item.StringItem("PLAIN_ELEMENT1"));
+        expectedMockArg.put(new Pair("$.struct.array[*]", "$.struct.array[1]"), new Item.StringItem("PLAIN_ELEMENT2"));
         assertEquals(expectedMockArg, mockArg.getValue());
 
-        assertEquals("PLAINTEXT", actual.get("text"));
-        assertEquals("PLAIN_OPTIONAL_TEXT", actual.get("text_opt"));
-        assertNull(actual.get("text_null"));
-        assertArrayEquals("encrypted_bytes".getBytes(Charset.defaultCharset()), (byte[]) actual.get("byte"));
-        assertArrayEquals("encrypted_optional_bytes".getBytes(Charset.defaultCharset()), (byte[]) actual.get("byte_opt"));
-        assertNull(actual.get("byte_null"));
+        Struct expected = newStruct();
+        expected.put("text", "encrypted_text");
+        expected.getStruct("struct").getArray("array").set(0, "encrypted_array1");
+        expected.getStruct("struct").getArray("array").set(1, "encrypted_array2");
+        assertEquals(expected, actual);
         assertNull(actual.schema().field("unknown"));
     }
 
     @Test
-    public void testApplyWithoutSchemaString() {
-        Transform sut = setUp(Arrays.asList("text", "text_opt", "text_null", "unknown"), Item.Encoding.STRING);
+    public void testApplyWithoutSchemaBinaryUsingJsonPath() {
+        Transform sut = setUp(Arrays.asList("$.byte", "$.struct.array[*]", "$.unknown"), Item.Encoding.BINARY);
 
-        Map<String, Item> mockedResult = new HashMap<>();
-        mockedResult.put("text", new Item.StringItem("encrypted_text"));
-        mockedResult.put("text_opt", new Item.StringItem("encrypted_optional_text"));
-        ArgumentCaptor<Map<String, Item>> mockArg = ArgumentCaptor.forClass(Map.class);
-        when(mockedService.doCrypto(ArgumentMatchers.<Map<String, Item>>any())).thenReturn(mockedResult);
+        Map<Pair<String, String>, Item> mockedResult = new HashMap<>();
+        mockedResult.put(new Pair("$.byte", "$.byte"), new Item.BytesItem("encrypted".getBytes()));
+        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[0]"), new Item.BytesItem("encrypted_binary1".getBytes()));
+        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[1]"), new Item.BytesItem("encrypted_binary2".getBytes()));
+        ArgumentCaptor<Map<Pair<String, String>, Item>> mockArg = ArgumentCaptor.forClass(Map.class);
+        when(mockedService.doCrypto(ArgumentMatchers.<Map<Pair<String, String>, Item>>any())).thenReturn(mockedResult);
 
-        Map<String, Object> actual = (Map) sut.apply(record(null, newMap())).value();
+        Map<String, Object> actual = (Map<String, Object>) sut.apply(record(null, newMap())).value();
 
         verify(mockedService).doCrypto(mockArg.capture());
-        Map<String, Item> expectedMockArg = new HashMap<>();
-        expectedMockArg.put("text", new Item.StringItem("PLAINTEXT"));
-        expectedMockArg.put("text_opt", new Item.StringItem("PLAIN_OPTIONAL_TEXT"));
+        Map<Pair<String, String>, Item> expectedMockArg = new HashMap<>();
+        expectedMockArg.put(new Pair("$.byte", "$.byte"), new Item.BytesItem("plain".getBytes()));
+        expectedMockArg.put(new Pair("$.struct.array[*]", "$.struct.array[0]"), new Item.BytesItem("PLAIN_ELEMENT1".getBytes()));
+        expectedMockArg.put(new Pair("$.struct.array[*]", "$.struct.array[1]"), new Item.BytesItem("PLAIN_ELEMENT2".getBytes()));
         assertEquals(expectedMockArg, mockArg.getValue());
 
-        assertEquals("encrypted_text", actual.get("text"));
-        assertEquals("encrypted_optional_text", actual.get("text_opt"));
-        assertNull(actual.get("text_null"));
-        assertArrayEquals("PLAINBYTE".getBytes(Charset.defaultCharset()), (byte[]) actual.get("byte"));
-        assertArrayEquals("PLAIN_OPTIONAL_BYTE".getBytes(Charset.defaultCharset()), (byte[]) actual.get("byte_opt"));
-        assertNull(actual.get("byte_null"));
+        assertArrayEquals("encrypted".getBytes(), (byte[]) actual.get("byte"));
+        assertArrayEquals("encrypted_binary1".getBytes(), ((List<byte[]>) ((Map<String, Object>) actual.get("struct")).get("array")).get(0));
+        assertArrayEquals("encrypted_binary2".getBytes(), ((List<byte[]>) ((Map<String, Object>) actual.get("struct")).get("array")).get(1));
         assertNull(actual.get("unknown"));
     }
 
     @Test
-    public void testApplyWithoutSchemaBytes() {
-        Transform sut = setUp(Arrays.asList("byte", "byte_opt", "byte_null", "unknown"), Item.Encoding.BINARY);
+    public void testApplyWithNoTargetColumn() {
+        Transform sut = setUp(Arrays.asList("$.optional"), Item.Encoding.STRING);
 
-        Map<String, Item> mockedResult = new HashMap<>();
-        mockedResult.put("byte", new Item.BytesItem("encrypted_bytes".getBytes(Charset.defaultCharset())));
-        mockedResult.put("byte_opt", new Item.BytesItem("encrypted_optional_bytes".getBytes(Charset.defaultCharset())));
-        ArgumentCaptor<Map<String, Item>> mockArg = ArgumentCaptor.forClass(Map.class);
-        when(mockedService.doCrypto(ArgumentMatchers.<Map<String, Item>>any())).thenReturn(mockedResult);
+        Struct actual = (Struct) sut.apply(record(SCHEMA, newStruct())).value();
 
-        Map<String, Object> actual = (Map) sut.apply(record(null, newMap())).value();
+        Struct expected = newStruct();
+        assertEquals(expected, actual);
+    }
 
-        verify(mockedService).doCrypto(mockArg.capture());
-        Map<String, Item> expectedMockArg = new HashMap<>();
-        expectedMockArg.put("byte", new Item.BytesItem("PLAINBYTE".getBytes(Charset.defaultCharset())));
-        expectedMockArg.put("byte_opt", new Item.BytesItem("PLAIN_OPTIONAL_BYTE".getBytes(Charset.defaultCharset())));
-        assertEquals(expectedMockArg, mockArg.getValue());
-
-        assertEquals("PLAINTEXT", actual.get("text"));
-        assertEquals("PLAIN_OPTIONAL_TEXT", actual.get("text_opt"));
-        assertNull(actual.get("text_null"));
-        assertArrayEquals("encrypted_bytes".getBytes(Charset.defaultCharset()), (byte[]) actual.get("byte"));
-        assertArrayEquals("encrypted_optional_bytes".getBytes(Charset.defaultCharset()), (byte[]) actual.get("byte_opt"));
-        assertNull(actual.get("byte_null"));
-        assertNull(actual.get("unknown"));
+    @Test
+    public void testFailureWithInvalidJsonPath() {
+        assertThrows(ConfigException.class, () -> setUp(Arrays.asList("text"), Item.Encoding.STRING));
     }
 
     @Test
     public void testFailureWithServiceServerError() {
-        Transform sut = setUp(Arrays.asList("text"), Item.Encoding.STRING);
-        when(mockedService.doCrypto(ArgumentMatchers.<Map<String, Item>>any())).thenThrow(new ServerErrorException("fail"));
-        assertThrows(RetriableException.class, () -> sut.apply(record(null, newMap())));
+        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.STRING);
+        when(mockedService.doCrypto(ArgumentMatchers.<Map<Pair<String, String>, Item>>any())).thenThrow(new ServerErrorException("fail"));
+        assertThrows(RetriableException.class, () -> sut.apply(record(SCHEMA, newStruct())));
     }
 
     @Test
     public void testFailureWithServiceClientError() {
-        Transform sut = setUp(Arrays.asList("text"), Item.Encoding.STRING);
-        when(mockedService.doCrypto(ArgumentMatchers.<Map<String, Item>>any())).thenThrow(new ClientErrorException("fail"));
-        assertThrows(DataException.class, () -> sut.apply(record(null, newMap())));
+        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.STRING);
+        when(mockedService.doCrypto(ArgumentMatchers.<Map<Pair<String, String>, Item>>any())).thenThrow(new ClientErrorException("fail"));
+        assertThrows(DataException.class, () -> sut.apply(record(SCHEMA, newStruct())));
     }
 
     @Test
     public void testInvalidEncodingErrorWithSchema() {
-        Transform sut = setUp(Arrays.asList("byte"), Item.Encoding.STRING);
+        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.BINARY);
         assertThrows(DataException.class, () -> sut.apply(record(SCHEMA, newStruct())));
     }
 
     @Test
     public void testInvalidEncodingErrorWithSchemaless() {
-        Transform sut = setUp(Arrays.asList("text"), Item.Encoding.BINARY);
+        Transform sut = setUp(Arrays.asList("$.byte"), Item.Encoding.STRING);
         assertThrows(DataException.class, () -> sut.apply(record(null, newMap())));
     }
 }

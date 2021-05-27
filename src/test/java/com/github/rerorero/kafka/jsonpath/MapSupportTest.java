@@ -80,7 +80,11 @@ class MapSupportTest {
                     put("$.struct.struct_array[2].string_element", "original_element2");
                 }}),
                 Arguments.of("$.struct.struct_array[0].optional_string_element", new HashMap<String, Object>()),
-                Arguments.of("$.optional_struct.elem", new HashMap<String, Object>())
+                Arguments.of("$.optional_struct.elem", new HashMap<String, Object>()),
+
+                // missing field should be skipped without error.
+                Arguments.of("$.unknown", new HashMap<String, Object>()),
+                Arguments.of("$.struct['unknown'].foo", new HashMap<String, Object>())
         );
     }
 
@@ -110,9 +114,7 @@ class MapSupportTest {
         Map<String, Object> s = newMap();
         assertThrows(JsonPathException.class, () -> MapSupport.newGetter("foo.foo.foo")); // parse error
         assertThrows(JsonPathException.class, () -> MapSupport.newGetter("$foo")); // parse error
-        // assertThrows(JsonPathException.class, () -> MapSupport.newGetter("$.unknown").run(s)); // TODO: check missing value
         assertThrows(JsonPathException.class, () -> MapSupport.newGetter("$.struct[0]").run(s));
-        // assertThrows(JsonPathException.class, () -> MapSupport.newGetter("$.struct['unknown']").run(s));
         assertThrows(JsonPathException.class, () -> MapSupport.newGetter("$.struct.string_array.foo").run(s));
     }
 
@@ -189,6 +191,10 @@ class MapSupportTest {
 
         args.add(Arguments.of("$.optional_struct.elem", new HashMap<String, Object>(), newMap()));
 
+        // missing field should be pass
+        args.add(Arguments.of("$.unknown", new HashMap<String, Object>(), newMap()));
+        args.add(Arguments.of("$.struct['unknown'].foo", new HashMap<String, Object>(), newMap()));
+
         return Stream.of(args.toArray(args.toArray(new Arguments[0])));
     }
 
@@ -221,9 +227,7 @@ class MapSupportTest {
         Map<String, Object> s = newMap();
         assertThrows(JsonPathException.class, () -> MapSupport.newUpdater("foo.foo.foo")); // parse error
         assertThrows(JsonPathException.class, () -> MapSupport.newUpdater("$foo")); // parse error
-        // assertThrows(JsonPathException.class, () -> MapSupport.newUpdater("$.unknown").run(s, Collections.singletonMap("$.unknown", "foo")));
         assertThrows(JsonPathException.class, () -> MapSupport.newUpdater("$.struct[0]").run(s, Collections.singletonMap("$.struct[0]", "foo")));
-        // assertThrows(JsonPathException.class, () -> MapSupport.newUpdater("$.struct['unknown']").run(s, Collections.singletonMap("$.struct['unknown']", "foo")));
         assertThrows(JsonPathException.class, () -> MapSupport.newUpdater("$.struct.string_array.foo").run(s, Collections.singletonMap("$.struct.string_array.foo", "foo")));
     }
 }

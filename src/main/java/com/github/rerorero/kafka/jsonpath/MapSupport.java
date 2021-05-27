@@ -16,7 +16,7 @@ public class MapSupport extends Support {
     private static final ParserListener.TaskGen<GetTaskState> getTaskGen = new GetTaskGen();
     private static final ParserListener.TaskGen<UpdateTaskState> updateTaskGen = new UpdateTaskGen();
 
-    public static class Getter {
+    public static class Getter implements JsonPath.Getter<Map<String, Object>> {
         private final List<ParserListener.Task<GetTaskState>> tasks;
 
         Getter(List<ParserListener.Task<GetTaskState>> tasks) {
@@ -30,13 +30,13 @@ public class MapSupport extends Support {
          * @return Map of field paths and values for retrieved values
          */
         public Map<String, Object> run(Map<String, Object> m) {
-            GetTaskState state = new GetTaskState(m);
+            final GetTaskState state = new GetTaskState(m);
             runTasks(state, tasks);
             return state.pathMap;
         }
     }
 
-    public static class Updater {
+    public static class Updater implements JsonPath.Updater<Map<String, Object>> {
         private final List<ParserListener.Task<UpdateTaskState>> tasks;
 
         Updater(List<ParserListener.Task<UpdateTaskState>> tasks) {
@@ -51,11 +51,11 @@ public class MapSupport extends Support {
          * @return a new Object instance with the passed valueToUpdate applied.
          */
         public Map<String, Object> run(Map<String, Object> org, Map<String, Object> valueToUpdate) {
-            Map<String, Object> updated = copyMap(org);
+            final Map<String, Object> updated = copyMap(org);
             if (valueToUpdate.isEmpty()) {
                 return updated;
             }
-            UpdateTaskState state = new UpdateTaskState(updated, valueToUpdate);
+            final UpdateTaskState state = new UpdateTaskState(updated, valueToUpdate);
             runTasks(state, tasks);
             return updated;
         }
@@ -69,8 +69,7 @@ public class MapSupport extends Support {
      * @return a new task runner to retrieve the values from a Map
      */
     public static Getter newGetter(String jsonPath) {
-        List<ParserListener.Task<GetTaskState>> tasks = parse(jsonPath, getTaskGen);
-        return new Getter(tasks);
+        return new Getter(parse(jsonPath, getTaskGen));
     }
 
     /**
@@ -81,18 +80,17 @@ public class MapSupport extends Support {
      * @return a new task runner to update the values in a Map
      */
     public static Updater newUpdater(String jsonPath) {
-        List<ParserListener.Task<UpdateTaskState>> tasks = parse(jsonPath, updateTaskGen);
-        return new Updater(tasks);
+        return new Updater(parse(jsonPath, updateTaskGen));
     }
 
     private static Map<String, Object> copyMap(Map<String, Object> org) {
-        Map<String, Object> newMap = new HashMap<>();
+        final Map<String, Object> newMap = new HashMap<>();
         org.forEach((key, value) -> {
-            Object obj = org.get(key);
+            final Object obj = org.get(key);
             if (obj == null) {
                 return;
             }
-            Schema.Type inferredType = ConnectSchema.schemaType(obj.getClass());
+            final Schema.Type inferredType = ConnectSchema.schemaType(obj.getClass());
             switch (inferredType) {
                 case INT32:
                 case INT64:
@@ -118,7 +116,7 @@ public class MapSupport extends Support {
 
     private static List<Object> copyArray(String key, List<Object> org) {
         return org.stream().map(o -> {
-            Schema.Type inferredType = ConnectSchema.schemaType(o.getClass());
+            final Schema.Type inferredType = ConnectSchema.schemaType(o.getClass());
             switch (inferredType) {
                 case INT32:
                 case INT64:
@@ -157,15 +155,15 @@ public class MapSupport extends Support {
     }
 
     private static Map<String, Object> mapObjectSubscript(Map<String, Object> pathMap, String keyName, Function<ObjectSubUpdateParam, Object> onSubscript) {
-        Map<String, Object> updated = new HashMap<>();
+        final Map<String, Object> updated = new HashMap<>();
 
         pathMap.forEach((path, cur) -> {
-            String childPath = pathOfObjectSub(path, keyName);
+            final String childPath = pathOfObjectSub(path, keyName);
             if (cur instanceof Map == false) {
                 throw new JsonPathException("field '" + childPath + "' is not a Map but " + cur.getClass());
             }
             try {
-                Object child = onSubscript.apply(new ObjectSubUpdateParam(childPath, keyName, (Map<String, Object>) cur));
+                final Object child = onSubscript.apply(new ObjectSubUpdateParam(childPath, keyName, (Map<String, Object>) cur));
                 if (child != null) {
                     updated.put(childPath, child);
                 }
@@ -212,7 +210,7 @@ public class MapSupport extends Support {
                     state.pathMap = mapObjectSubscript(state.pathMap, keyName, param -> {
                         // if path is found in newValue, modify the Map in the state
                         // otherwise just get the field and return it.
-                        Object newVal = state.getNewValue(param.path);
+                        final Object newVal = state.getNewValue(param.path);
                         if (newVal != null) {
                             param.parent.put(param.key, newVal);
                             return newVal;
@@ -226,7 +224,7 @@ public class MapSupport extends Support {
         public ParserListener.Task<UpdateTaskState> subscriptArray(int index) {
             return state ->
                     state.pathMap = mapSubscriptArray(state.pathMap, index, param -> {
-                        Object newVal = state.getNewValue(param.path);
+                        final Object newVal = state.getNewValue(param.path);
                         if (newVal != null) {
                             param.parent.set(param.index, newVal);
                             return newVal;

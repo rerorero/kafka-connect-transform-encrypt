@@ -1,5 +1,7 @@
 package com.github.rerorero.kafka.connect.transform.encrypt;
 
+import com.github.rerorero.kafka.connect.transform.encrypt.condition.Condition;
+import com.github.rerorero.kafka.connect.transform.encrypt.condition.Conditions;
 import com.github.rerorero.kafka.connect.transform.encrypt.config.Config;
 import com.github.rerorero.kafka.connect.transform.encrypt.config.FieldSelector;
 import com.github.rerorero.kafka.connect.transform.encrypt.exception.ServerErrorException;
@@ -28,6 +30,7 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
     private Service cryptoService;
     private CryptoConfig cryptoConfig;
     private FieldSelector fieldSelector;
+    private Conditions conditions;
 
     @Override
     public ConfigDef config() {
@@ -40,6 +43,7 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
         this.cryptoService = c.cryptoService();
         this.fieldSelector = c.fieldSelector();
         this.cryptoConfig = c.cryptoCOnfig();
+        this.conditions = c.conditions();
     }
 
     protected Config newConfig(Map<String, ?> props) {
@@ -51,10 +55,10 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
         Object updated = null;
         if (operatingSchema(record) == null) {
             final Map<String, Object> org = requireMap(operatingValue(record), "encrypt/decrypt");
-            updated = doCrypto(org, fieldSelector.mapGetters, fieldSelector.mapUpdaters);
+            updated = doCrypto(org, fieldSelector.mapGetters, fieldSelector.mapUpdaters, conditions.mapCondition);
         } else {
             final Struct org = requireStruct(operatingValue(record), "encrypt/decrypt");
-            updated = doCrypto(org, fieldSelector.structGetters, fieldSelector.structUpdaters);
+            updated = doCrypto(org, fieldSelector.structGetters, fieldSelector.structUpdaters, conditions.structCondition);
         }
         return newRecord(record, updated);
     }
@@ -63,8 +67,17 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
     public void close() {
     }
 
-    private <T> T doCrypto(T value, Map<String, JsonPath.Getter<T>> getters, Map<String, JsonPath.Updater<T>> updaters) {
+    private <R> R doCrypto(
+            R value,
+            Map<String, JsonPath.Getter<R>> getters,
+            Map<String, JsonPath.Updater<R>> updaters,
+            Condition<R> condition
+    ) {
         try {
+            if (!condition.accept(value)) {
+                return value;
+            }
+
             // Key of the map is a pair of JsonPath expression and the field path
             final Map<Pair<String, String>, Item> params = new HashMap<>();
             getters.forEach((jsonPathExp, getter) ->
@@ -92,9 +105,9 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
             });
 
             // Apply Updater for each JsonPath
-            T updated = value;
+            R updated = value;
             for (Map.Entry<String, Map<String, Object>> kv : newValues.entrySet()) {
-                JsonPath.Updater<T> updater = updaters.get(kv.getKey());
+                JsonPath.Updater<R> updater = updaters.get(kv.getKey());
                 updated = updater.run(updated, kv.getValue());
             }
 

@@ -43,6 +43,15 @@ JsonPath expression strings to specify the field to be encrypted or decrypted. M
 
 NOTE: It has limited support for JsonPath syntax for now, please see [JsonPath Limitations](#jsonpath-limitations).
 
+#### `condition.field` and `condition.equals` (optional)
+
+Specifies the conditions under which the transformation is be performed or not.
+
+`condition.field` should be JsonPath expression and `condition.equals` should be a string.
+When both are set, the transformation is performed only if the value of the field specified by `condition.field` matches the value of `condition.equals`.
+
+All messages are transformed if both are omitted.
+
 ## Configurations for HashiCorp Vault
 
 #### `vault.url`

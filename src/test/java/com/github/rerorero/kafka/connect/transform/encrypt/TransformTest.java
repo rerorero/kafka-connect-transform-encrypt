@@ -1,5 +1,6 @@
 package com.github.rerorero.kafka.connect.transform.encrypt;
 
+import com.github.rerorero.kafka.connect.transform.encrypt.condition.Conditions;
 import com.github.rerorero.kafka.connect.transform.encrypt.config.Config;
 import com.github.rerorero.kafka.connect.transform.encrypt.config.FieldSelector;
 import com.github.rerorero.kafka.connect.transform.encrypt.exception.ClientErrorException;
@@ -76,7 +77,7 @@ class TransformTest {
 
     private Service mockedService;
 
-    private Transform<SinkRecord> setUp(List<String> fieldList, Item.Encoding enc) {
+    private Transform<SinkRecord> setUp(List<String> fieldList, Item.Encoding enc, Conditions conds) {
         this.mockedService = mock(Service.class);
         Set<String> fields = new HashSet<>(fieldList);
         CryptoConfig cryptoConf = new CryptoConfig(enc, enc);
@@ -92,6 +93,11 @@ class TransformTest {
             }
 
             @Override
+            public Conditions conditions() {
+                return conds;
+            }
+
+            @Override
             public CryptoConfig cryptoCOnfig() {
                 return cryptoConf;
             }
@@ -103,7 +109,7 @@ class TransformTest {
 
     @Test
     public void testApplyWithSchemaTextUsingJsonPath() {
-        Transform sut = setUp(Arrays.asList("$.text", "$.struct.array[*]", "$.unknown"), Item.Encoding.STRING);
+        Transform sut = setUp(Arrays.asList("$.text", "$.struct.array[*]", "$.unknown"), Item.Encoding.STRING, new Conditions("$.text", "PLAINTEXT"));
 
         Map<Pair<String, String>, Item> mockedResult = new HashMap<>();
         mockedResult.put(new Pair("$.text", "$.text"), new Item.StringItem("encrypted_text"));
@@ -131,7 +137,7 @@ class TransformTest {
 
     @Test
     public void testApplyWithoutSchemaBinaryUsingJsonPath() {
-        Transform sut = setUp(Arrays.asList("$.byte", "$.struct.array[*]", "$.unknown"), Item.Encoding.BINARY);
+        Transform sut = setUp(Arrays.asList("$.byte", "$.struct.array[*]", "$.unknown"), Item.Encoding.BINARY, new Conditions());
 
         Map<Pair<String, String>, Item> mockedResult = new HashMap<>();
         mockedResult.put(new Pair("$.byte", "$.byte"), new Item.BytesItem("encrypted".getBytes()));
@@ -156,8 +162,19 @@ class TransformTest {
     }
 
     @Test
+    public void testApplyWithFalseCondition() {
+        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.STRING, new Conditions("$.text", "out"));
+
+        Struct actual = (Struct) sut.apply(record(SCHEMA, newStruct())).value();
+
+        Struct expected = newStruct();
+        assertEquals(expected, actual);
+        assertNull(actual.schema().field("unknown"));
+    }
+
+    @Test
     public void testApplyWithNoTargetColumn() {
-        Transform sut = setUp(Arrays.asList("$.optional"), Item.Encoding.STRING);
+        Transform sut = setUp(Arrays.asList("$.optional"), Item.Encoding.STRING, new Conditions());
 
         Struct actual = (Struct) sut.apply(record(SCHEMA, newStruct())).value();
 
@@ -167,32 +184,32 @@ class TransformTest {
 
     @Test
     public void testFailureWithInvalidJsonPath() {
-        assertThrows(ConfigException.class, () -> setUp(Arrays.asList("text"), Item.Encoding.STRING));
+        assertThrows(ConfigException.class, () -> setUp(Arrays.asList("text"), Item.Encoding.STRING, new Conditions()));
     }
 
     @Test
     public void testFailureWithServiceServerError() {
-        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.STRING);
+        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.STRING, new Conditions());
         when(mockedService.doCrypto(ArgumentMatchers.<Map<Pair<String, String>, Item>>any())).thenThrow(new ServerErrorException("fail"));
         assertThrows(RetriableException.class, () -> sut.apply(record(SCHEMA, newStruct())));
     }
 
     @Test
     public void testFailureWithServiceClientError() {
-        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.STRING);
+        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.STRING, new Conditions());
         when(mockedService.doCrypto(ArgumentMatchers.<Map<Pair<String, String>, Item>>any())).thenThrow(new ClientErrorException("fail"));
         assertThrows(DataException.class, () -> sut.apply(record(SCHEMA, newStruct())));
     }
 
     @Test
     public void testInvalidEncodingErrorWithSchema() {
-        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.BINARY);
+        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.BINARY, new Conditions());
         assertThrows(DataException.class, () -> sut.apply(record(SCHEMA, newStruct())));
     }
 
     @Test
     public void testInvalidEncodingErrorWithSchemaless() {
-        Transform sut = setUp(Arrays.asList("$.byte"), Item.Encoding.STRING);
+        Transform sut = setUp(Arrays.asList("$.byte"), Item.Encoding.STRING, new Conditions());
         assertThrows(DataException.class, () -> sut.apply(record(null, newMap())));
     }
 }

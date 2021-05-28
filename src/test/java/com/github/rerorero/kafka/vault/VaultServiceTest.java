@@ -1,11 +1,11 @@
-package com.github.rerorero.kafka.connect.transform.encrypt.vault;
+package com.github.rerorero.kafka.vault;
 
 import com.github.rerorero.kafka.connect.transform.encrypt.exception.ServiceException;
-import com.github.rerorero.kafka.connect.transform.encrypt.kms.CryptoConfig;
-import com.github.rerorero.kafka.connect.transform.encrypt.kms.Item;
-import com.github.rerorero.kafka.connect.transform.encrypt.vault.client.DecryptParameter;
-import com.github.rerorero.kafka.connect.transform.encrypt.vault.client.EncryptParameter;
-import com.github.rerorero.kafka.connect.transform.encrypt.vault.client.VaultClient;
+import com.github.rerorero.kafka.kms.CryptoConfig;
+import com.github.rerorero.kafka.kms.Item;
+import com.github.rerorero.kafka.vault.client.DecryptParameter;
+import com.github.rerorero.kafka.vault.client.EncryptParameter;
+import com.github.rerorero.kafka.vault.client.VaultClient;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;

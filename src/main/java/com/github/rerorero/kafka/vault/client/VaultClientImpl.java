@@ -1,4 +1,4 @@
-package com.github.rerorero.kafka.connect.transform.encrypt.vault.client;
+package com.github.rerorero.kafka.vault.client;
 
 import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultException;

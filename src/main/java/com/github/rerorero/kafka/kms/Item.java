@@ -1,4 +1,4 @@
-package com.github.rerorero.kafka.connect.transform.encrypt.kms;
+package com.github.rerorero.kafka.kms;
 
 import java.nio.charset.Charset;
 import java.util.Arrays;

@@ -1,4 +1,4 @@
-package com.github.rerorero.kafka.connect.transform.encrypt.vault.client;
+package com.github.rerorero.kafka.vault.client;
 
 import java.util.List;
 

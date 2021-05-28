@@ -1,4 +1,4 @@
-package com.github.rerorero.kafka.connect.transform.encrypt.util;
+package com.github.rerorero.kafka.util;
 
 import java.io.Serializable;
 

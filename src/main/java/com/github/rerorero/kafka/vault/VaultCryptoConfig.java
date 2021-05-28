@@ -1,6 +1,6 @@
-package com.github.rerorero.kafka.connect.transform.encrypt.vault;
+package com.github.rerorero.kafka.vault;
 
-import com.github.rerorero.kafka.connect.transform.encrypt.kms.CryptoConfig;
+import com.github.rerorero.kafka.kms.CryptoConfig;
 
 import java.util.Optional;
 

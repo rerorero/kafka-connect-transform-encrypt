@@ -3,14 +3,13 @@ package com.github.rerorero.kafka.connect.transform.encrypt.config;
 import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultConfig;
 import com.bettercloud.vault.VaultException;
-import com.bettercloud.vault.json.Json;
-import com.github.rerorero.kafka.connect.transform.encrypt.kms.CryptoConfig;
-import com.github.rerorero.kafka.connect.transform.encrypt.kms.Item;
-import com.github.rerorero.kafka.connect.transform.encrypt.kms.Service;
-import com.github.rerorero.kafka.connect.transform.encrypt.vault.VaultCryptoConfig;
-import com.github.rerorero.kafka.connect.transform.encrypt.vault.VaultService;
-import com.github.rerorero.kafka.connect.transform.encrypt.vault.client.VaultClient;
-import com.github.rerorero.kafka.connect.transform.encrypt.vault.client.VaultClientImpl;
+import com.github.rerorero.kafka.kms.CryptoConfig;
+import com.github.rerorero.kafka.kms.Item;
+import com.github.rerorero.kafka.kms.Service;
+import com.github.rerorero.kafka.vault.VaultCryptoConfig;
+import com.github.rerorero.kafka.vault.VaultService;
+import com.github.rerorero.kafka.vault.client.VaultClient;
+import com.github.rerorero.kafka.vault.client.VaultClientImpl;
 import com.github.rerorero.kafka.jsonpath.JsonPathException;
 import com.github.rerorero.kafka.jsonpath.MapSupport;
 import com.github.rerorero.kafka.jsonpath.StructSupport;
@@ -20,7 +19,6 @@ import org.apache.kafka.connect.transforms.util.SimpleConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
 import java.util.*;
 
 public abstract class Config {

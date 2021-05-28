@@ -1,6 +1,6 @@
 package com.github.rerorero.kafka.connect.transform.encrypt.config;
 
-import com.github.rerorero.kafka.connect.transform.encrypt.vault.VaultService;
+import com.github.rerorero.kafka.vault.VaultService;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.Test;
 

@@ -3,6 +3,7 @@ package com.github.rerorero.kafka.connect.transform.encrypt.config;
 import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultConfig;
 import com.bettercloud.vault.VaultException;
+import com.github.rerorero.kafka.connect.transform.encrypt.condition.Conditions;
 import com.github.rerorero.kafka.kms.CryptoConfig;
 import com.github.rerorero.kafka.kms.Item;
 import com.github.rerorero.kafka.kms.Service;
@@ -42,6 +43,9 @@ public abstract class Config {
     public static final String FIELD_ENCODING_BASE64 = "base64";
     private static final OneOfValidator<String> encodingValidator = new OneOfValidator<>(FIELD_ENCODING_STRING, FIELD_ENCODING_BINARY, FIELD_ENCODING_BASE64);
 
+    public static final String CONDITION_FIELD = "condition.field";
+    public static final String CONDITION_EQUALS = "condition.equals";
+
     // Vault
     public static final String VAULT_URL = "vault.url";
     public static final String VAULT_TOKEN = "vault.token";
@@ -61,6 +65,12 @@ public abstract class Config {
                     ConfigDef.Importance.LOW, "Encoding of input field before encrypted or decrypted.")
             .define(FIELD_ENCODING_OUT, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.LOW, "Encoding of output field after encrypted or decrypted.")
+            .define(CONDITION_FIELD, ConfigDef.Type.STRING, null,
+                    ConfigDef.Importance.LOW, "(optional) Specifies the condition for the transform."
+                            + "When condition.* are set, transform is performed only if the value of the JsonPath field specified by " + CONDITION_FIELD + " matches " + CONDITION_EQUALS)
+            .define(CONDITION_EQUALS, ConfigDef.Type.STRING, null,
+                    ConfigDef.Importance.LOW, "(optional) Specifies the condition for the transform."
+                            + "When condition.* are set, transform is performed only if the value of the JsonPath field specified by " + CONDITION_FIELD + " matches " + CONDITION_EQUALS)
             // Vault
             .define(VAULT_URL, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE,
                     ConfigDef.Importance.HIGH, "URL of the Vault server.")
@@ -74,6 +84,8 @@ public abstract class Config {
     public abstract Service cryptoService();
 
     public abstract FieldSelector fieldSelector();
+
+    public abstract Conditions conditions();
 
     public abstract CryptoConfig cryptoCOnfig();
 
@@ -90,24 +102,40 @@ public abstract class Config {
     }
 
     protected static FieldSelector newFieldSelector(Set<String> jsonPaths) {
-            FieldSelector fs = new FieldSelector();
-            jsonPaths.forEach(path -> {
-                try {
-                    fs.mapGetters.put(path, MapSupport.newGetter(path));
-                    fs.mapUpdaters.put(path, MapSupport.newUpdater(path));
-                    fs.structGetters.put(path, StructSupport.newGetter(path));
-                    fs.structUpdaters.put(path, StructSupport.newUpdater(path));
-                } catch (JsonPathException e) {
-                    throw new ConfigException(FIELDS, path, e.getMessage());
-                }
-            });
+        FieldSelector fs = new FieldSelector();
+        jsonPaths.forEach(path -> {
+            try {
+                fs.mapGetters.put(path, MapSupport.newGetter(path));
+                fs.mapUpdaters.put(path, MapSupport.newUpdater(path));
+                fs.structGetters.put(path, StructSupport.newGetter(path));
+                fs.structUpdaters.put(path, StructSupport.newUpdater(path));
+            } catch (JsonPathException e) {
+                throw new ConfigException(FIELDS, path, e.getMessage());
+            }
+        });
         return fs;
+    }
+
+    protected static Conditions newConditions(String field, String comparison) {
+        try {
+            if (field == null && comparison == null) {
+                return new Conditions();
+            }
+            if (field != null && comparison != null) {
+                return new Conditions(field, comparison);
+            }
+        } catch (JsonPathException e) {
+            throw new ConfigException(CONDITION_FIELD, field, e.getMessage());
+        }
+
+        throw new ConfigException("You need to specify both " + CONDITION_FIELD + " and " + CONDITION_EQUALS + " to set condition");
     }
 
     public static class ConfigImpl extends Config {
         private final Service service;
         private final CryptoConfig cryptoConf;
         private final FieldSelector fieldSel;
+        private final Conditions conds;
 
         @Override
         public Service cryptoService() {
@@ -120,6 +148,11 @@ public abstract class Config {
         }
 
         @Override
+        public Conditions conditions() {
+            return this.conds;
+        }
+
+        @Override
         public CryptoConfig cryptoCOnfig() {
             return cryptoConf;
         }
@@ -129,10 +162,12 @@ public abstract class Config {
 
             // general configurations
             this.fieldSel = newFieldSelector(new HashSet<>(conf.getList(FIELDS)));
+            this.conds = newConditions(conf.getString(CONDITION_FIELD), conf.getString(CONDITION_EQUALS));
             this.cryptoConf = new CryptoConfig(
                     encodingOf(conf.getString(FIELD_ENCODING_IN)),
                     encodingOf(conf.getString(FIELD_ENCODING_OUT) != null ? conf.getString(FIELD_ENCODING_OUT) : conf.getString(FIELD_ENCODING_IN))
             );
+
 
             if (conf.getString(SERVICE).equals(SERVICE_VAULT)) {
                 this.service = vaultService(conf);

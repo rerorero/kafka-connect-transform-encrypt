@@ -36,6 +36,18 @@ public abstract class Item {
         return new StringItem(text);
     }
 
+    public static Item fromBytes(byte[] bytes, Encoding enc) {
+        switch (enc) {
+            case STRING:
+                return new StringItem(b2s(Base64.getEncoder().encode(bytes)));
+            case BINARY:
+                return new BytesItem(bytes);
+            case BASE64STRING:
+                return new Base64StringItem(b2s(Base64.getEncoder().encode(bytes)));
+        }
+        return new BytesItem(bytes);
+    }
+
     public static Item fromBase64(String base64text, Encoding enc) {
         switch (enc) {
             case STRING:

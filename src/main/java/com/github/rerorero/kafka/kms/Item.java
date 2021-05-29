@@ -9,55 +9,39 @@ public abstract class Item {
     public enum Encoding {
         STRING,
         BINARY,
-        BASE64STRING,
     }
 
-    public static Item fromEncodedObject(Object item, Encoding encoding) {
-        switch (encoding) {
-            case STRING:
-                return new StringItem((String) item);
-            case BINARY:
-                return new BytesItem((byte[]) item);
-            case BASE64STRING:
-                return new Base64StringItem((String) item);
+    public static Item fromObject(Object item) {
+        if (item instanceof String) {
+            return new StringItem((String) item);
+        } else if (item instanceof byte[]) {
+            return new BytesItem((byte[]) item);
         }
-        return new StringItem((String) item);
+        return new StringItem(item.toString());
     }
+//
+//    public static Item fromString(String text, Encoding enc) {
+//        switch (enc) {
+//            case STRING:
+//                return new StringItem(text);
+//            case BINARY:
+//                return new BytesItem(s2b(text));
+//        }
+//        return new StringItem(text);
+//    }
+//
+//    public static Item fromBytes(byte[] bytes, Encoding enc) {
+//        switch (enc) {
+//            case STRING:
+//                return new StringItem(b2s(Base64.getEncoder().encode(bytes)));
+//            case BINARY:
+//                return new BytesItem(bytes);
+//        }
+//        return new BytesItem(bytes);
+//    }
 
-    public static Item fromString(String text, Encoding enc) {
-        switch (enc) {
-            case STRING:
-                return new StringItem(text);
-            case BINARY:
-                return new BytesItem(s2b(text));
-            case BASE64STRING:
-                return new Base64StringItem(b2s(Base64.getEncoder().encode(s2b(text))));
-        }
-        return new StringItem(text);
-    }
-
-    public static Item fromBytes(byte[] bytes, Encoding enc) {
-        switch (enc) {
-            case STRING:
-                return new StringItem(b2s(Base64.getEncoder().encode(bytes)));
-            case BINARY:
-                return new BytesItem(bytes);
-            case BASE64STRING:
-                return new Base64StringItem(b2s(Base64.getEncoder().encode(bytes)));
-        }
-        return new BytesItem(bytes);
-    }
-
-    public static Item fromBase64(String base64text, Encoding enc) {
-        switch (enc) {
-            case STRING:
-                return new StringItem(new String(Base64.getDecoder().decode(base64text), Charset.defaultCharset()));
-            case BINARY:
-                return new BytesItem(Base64.getDecoder().decode(base64text));
-            case BASE64STRING:
-                return new Base64StringItem(base64text);
-        }
-        return new Base64StringItem(base64text);
+    public static Item fromBase64(String base64text) {
+        return new BytesItem(Base64.getDecoder().decode(base64text));
     }
 
     public Object asObject(Encoding encoding) {
@@ -66,8 +50,6 @@ public abstract class Item {
                 return asText();
             case BINARY:
                 return asBytes();
-            case BASE64STRING:
-                return asBase64String();
         }
         return asText();
     }
@@ -163,50 +145,6 @@ public abstract class Item {
         @Override
         public int hashCode() {
             return Arrays.hashCode(item);
-        }
-    }
-
-    // Base64 string
-    public static class Base64StringItem extends Item {
-        private final String item;
-
-        public Base64StringItem(String item) {
-            this.item = item;
-        }
-
-        @Override
-        public String asBase64String() {
-            return item;
-        }
-
-        @Override
-        public byte[] asBytes() {
-            return Base64.getDecoder().decode(item);
-        }
-
-        @Override
-        public String asText() {
-            return new String(asBytes(), Charset.defaultCharset());
-        }
-
-        @Override
-        public String toString() {
-            return "Base64StringItem{" +
-                    "item='" + item + '\'' +
-                    '}';
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Base64StringItem that = (Base64StringItem) o;
-            return Objects.equals(item, that.item);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(item);
         }
     }
 }

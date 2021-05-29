@@ -15,10 +15,6 @@ public class CryptoConfig {
         this(config.inputEncoding, config.outputEncoding);
     }
 
-    public Item.Encoding getInputEncoding() {
-        return inputEncoding;
-    }
-
     public Item.Encoding getOutputEncoding() {
         return outputEncoding;
     }

@@ -95,8 +95,6 @@ public abstract class Config {
                 return Item.Encoding.STRING;
             case FIELD_ENCODING_BINARY:
                 return Item.Encoding.BINARY;
-            case FIELD_ENCODING_BASE64:
-                return Item.Encoding.BASE64STRING;
         }
         throw new ConfigException("Invalid encoding: " + value);
     }
@@ -190,7 +188,6 @@ public abstract class Config {
             }
 
             VaultCryptoConfig vaultConf = new VaultCryptoConfig(
-                    cryptoConf,
                     conf.getString(VAULT_KEY_NAME),
                     Optional.ofNullable(conf.getString(VAULT_CONTEXT))
             );

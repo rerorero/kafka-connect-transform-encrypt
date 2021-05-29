@@ -65,7 +65,7 @@ public abstract class VaultService<Param> implements Service {
 
         @Override
         protected Item newItemResult(String result) {
-            return Item.fromString(result, config.getOutputEncoding());
+            return new Item.StringItem(result);
         }
 
         @Override
@@ -86,7 +86,7 @@ public abstract class VaultService<Param> implements Service {
 
         @Override
         protected Item newItemResult(String result) {
-            return Item.fromBase64(result, config.getOutputEncoding());
+            return Item.fromBase64(result);
         }
 
         @Override

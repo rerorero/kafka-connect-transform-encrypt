@@ -10,6 +10,5 @@ class AWSKeyManagementServiceTest {
 
     @Test
     void testEncryptService() {
-        System.out.println(CryptoAlgorithm.valueOf());
     }
 }

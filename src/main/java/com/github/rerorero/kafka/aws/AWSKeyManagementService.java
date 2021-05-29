@@ -26,19 +26,19 @@ public abstract class AWSKeyManagementService implements Service {
         this.config = config;
     }
 
-    public static class EncryptService extends AWSKeyManagementService {
-        public EncryptService(AWSKMSCryptoConfig config) {
-            super(config);
-        }
-
-        @Override
-        public <F> Map<F, Item> doCrypto(Map<F, Item> items) {
-            return null;
-        }
-
-        Item encrypt(Item item) {
-            CryptoResult<byte[], KmsMasterKey> res = client.encryptData(keyProvider, item.asBytes(), config.getContext());
-            return Item.fromBytes(res.getResult(), config.getOutputEncoding());
-        }
-    }
+//    public static class EncryptService extends AWSKeyManagementService {
+//        public EncryptService(AWSKMSCryptoConfig config) {
+//            super(config);
+//        }
+//
+//        @Override
+//        public <F> Map<F, Item> doCrypto(Map<F, Item> items) {
+//            return null;
+//        }
+//
+//        Item encrypt(Item item) {
+//            CryptoResult<byte[], KmsMasterKey> res = client.encryptData(keyProvider, item.asBytes(), config.getContext());
+//            return Item.fromBytes(res.getResult(), config.getOutputEncoding());
+//        }
+//    }
 }

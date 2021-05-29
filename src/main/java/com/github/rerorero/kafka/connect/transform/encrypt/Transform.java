@@ -82,7 +82,7 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
             final Map<Pair<String, String>, Item> params = new HashMap<>();
             getters.forEach((jsonPathExp, getter) ->
                     getter.run(value).forEach((fieldPath, fieldValue) -> {
-                        Item item = itemFromEncodedObject(fieldPath, fieldValue, cryptoConfig.getInputEncoding());
+                        Item item = itemFromEncodedObject(fieldPath, fieldValue);
                         params.put(new Pair(jsonPathExp, fieldPath), item);
                     })
             );
@@ -121,11 +121,11 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
         }
     }
 
-    private Item itemFromEncodedObject(String name, Object obj, Item.Encoding encoding) {
+    private Item itemFromEncodedObject(String name, Object obj) {
         try {
-            return Item.fromEncodedObject(obj, encoding);
+            return Item.fromObject(obj);
         } catch (ClassCastException e) {
-            throw new DataException("Failed to read '" + name + "' field as " + encoding.toString() + ": " + e.getMessage());
+            throw new DataException("Failed to read '" + name + "': " + e.getMessage());
         }
     }
 

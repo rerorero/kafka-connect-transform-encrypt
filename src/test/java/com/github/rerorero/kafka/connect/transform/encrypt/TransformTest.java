@@ -200,16 +200,4 @@ class TransformTest {
         when(mockedService.doCrypto(ArgumentMatchers.<Map<Pair<String, String>, Item>>any())).thenThrow(new ClientErrorException("fail"));
         assertThrows(DataException.class, () -> sut.apply(record(SCHEMA, newStruct())));
     }
-
-    @Test
-    public void testInvalidEncodingErrorWithSchema() {
-        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.BINARY, new Conditions());
-        assertThrows(DataException.class, () -> sut.apply(record(SCHEMA, newStruct())));
-    }
-
-    @Test
-    public void testInvalidEncodingErrorWithSchemaless() {
-        Transform sut = setUp(Arrays.asList("$.byte"), Item.Encoding.STRING, new Conditions());
-        assertThrows(DataException.class, () -> sut.apply(record(null, newMap())));
-    }
 }

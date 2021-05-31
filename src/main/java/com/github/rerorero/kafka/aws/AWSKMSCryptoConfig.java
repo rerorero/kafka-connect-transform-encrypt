@@ -1,12 +1,11 @@
 package com.github.rerorero.kafka.aws;
 
 import com.amazonaws.auth.AWSCredentials;
-import com.github.rerorero.kafka.kms.CryptoConfig;
 
 import java.util.Map;
 import java.util.Optional;
 
-public class AWSKMSCryptoConfig extends CryptoConfig {
+public class AWSKMSCryptoConfig {
     private final AWSCredentials creds;
     private final String region;
     private final String keyID;
@@ -14,14 +13,12 @@ public class AWSKMSCryptoConfig extends CryptoConfig {
     private final Optional<String> encryptionAlgorithm;
 
     public AWSKMSCryptoConfig(
-            CryptoConfig common,
             AWSCredentials creds,
             String region,
             String keyID,
             Map<String, String> context,
             Optional<String> encryptionAlgorithm
     ) {
-        super(common);
         this.creds = creds;
         this.region = region;
         this.keyID = keyID;

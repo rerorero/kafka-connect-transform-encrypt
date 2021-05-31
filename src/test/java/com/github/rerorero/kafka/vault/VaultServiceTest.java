@@ -25,9 +25,9 @@ class VaultServiceTest {
     private static Stream<Arguments> encryptArguments() {
         // case1 string -> string: with context
         VaultCryptoConfig config1 = new VaultCryptoConfig(keyName, Optional.of("context"));
-        Map<Integer, Item> param1 = new HashMap<>();
-        param1.put(1, new Item.StringItem("Frantz"));
-        param1.put(2, new Item.StringItem("Kafka"));
+        Map<Integer, Object> param1 = new HashMap<>();
+        param1.put(1, "Frantz");
+        param1.put(2, "Kafka");
         List<String> mockedResult1 = new ArrayList<>();
         mockedResult1.add("encrypted-Frantz");
         mockedResult1.add("encrypted-Kafka");
@@ -40,9 +40,9 @@ class VaultServiceTest {
 
         // case2 binary -> string: without context
         VaultCryptoConfig config2 = new VaultCryptoConfig(keyName, Optional.empty());
-        Map<Integer, Item> param2 = new HashMap<>();
-        param2.put(1, new Item.BytesItem(new byte[]{70, 114, 97, 110, 116, 122}));
-        param2.put(2, new Item.BytesItem(new byte[]{75, 97, 102, 107, 97}));
+        Map<Integer, Object> param2 = new HashMap<>();
+        param2.put(1, new byte[]{70, 114, 97, 110, 116, 122});
+        param2.put(2, new byte[]{75, 97, 102, 107, 97});
         List<String> mockedResult2 = new ArrayList<>();
         mockedResult2.add("encrypted-Frantz");
         mockedResult2.add("encrypted-Kafka");
@@ -55,7 +55,7 @@ class VaultServiceTest {
 
         // case3 empty
         VaultCryptoConfig config3 = new VaultCryptoConfig(keyName, Optional.of("context"));
-        Map<Integer, Item> param3 = new HashMap<>();
+        Map<Integer, Object> param3 = new HashMap<>();
         List<String> mockedResult3 = new ArrayList<>();
         List<EncryptParameter> expectedMockArgs3 = new ArrayList<>();
         Map<Integer, Item> expected3 = new HashMap<>();
@@ -70,9 +70,9 @@ class VaultServiceTest {
     private static Stream<Arguments> decryptArguments() {
         // case1 string -> string: with context
         VaultCryptoConfig config1 = new VaultCryptoConfig(keyName, Optional.of("context"));
-        Map<Integer, Item> param1 = new HashMap<>();
-        param1.put(1, new Item.StringItem("encrypted-Frantz"));
-        param1.put(2, new Item.StringItem("encrypted-Kafka"));
+        Map<Integer, Object> param1 = new HashMap<>();
+        param1.put(1, "encrypted-Frantz");
+        param1.put(2, "encrypted-Kafka");
         List<String> mockedResult1 = new ArrayList<>();
         mockedResult1.add("RnJhbnR6");
         mockedResult1.add("S2Fma2E=");
@@ -85,9 +85,9 @@ class VaultServiceTest {
 
         // case2 binary -> string: without context
         VaultCryptoConfig config2 = new VaultCryptoConfig(keyName, Optional.empty());
-        Map<Integer, Item> param2 = new HashMap<>();
-        param2.put(1, new Item.BytesItem(new byte[]{111, 110, 101})); // "one"
-        param2.put(2, new Item.BytesItem(new byte[]{116, 119, 111})); // "two"
+        Map<Integer, Object> param2 = new HashMap<>();
+        param2.put(1, new byte[]{111, 110, 101}); // "one"
+        param2.put(2, new byte[]{116, 119, 111}); // "two"
         List<String> mockedResult2 = new ArrayList<>();
         mockedResult2.add("RnJhbnR6");
         mockedResult2.add("S2Fma2E=");
@@ -100,7 +100,7 @@ class VaultServiceTest {
 
         // case5 empty
         VaultCryptoConfig config3 = new VaultCryptoConfig(keyName, Optional.of("context"));
-        Map<Integer, Item> param3 = new HashMap<>();
+        Map<Integer, Object> param3 = new HashMap<>();
         List<String> mockedResult3 = new ArrayList<>();
         List<DecryptParameter> expectedMockArgs3 = new ArrayList<>();
         Map<Integer, Item> expected3 = new HashMap<>();
@@ -116,7 +116,7 @@ class VaultServiceTest {
     @MethodSource("encryptArguments")
     public void testEncryptService(
             VaultCryptoConfig conf,
-            Map<Integer, Item> param,
+            Map<Integer, Object> param,
             List<String> mockResult,
             List<EncryptParameter> expectedMockArgs,
             Map<Integer, Item> expected
@@ -138,7 +138,7 @@ class VaultServiceTest {
     @MethodSource("decryptArguments")
     public void testDecryptService(
             VaultCryptoConfig conf,
-            Map<Integer, Item> param,
+            Map<Integer, Object> param,
             List<String> mockResult,
             List<DecryptParameter> expectedMockArgs,
             Map<Integer, Item> expected

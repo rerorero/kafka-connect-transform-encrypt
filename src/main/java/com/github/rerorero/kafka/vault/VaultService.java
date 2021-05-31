@@ -1,5 +1,6 @@
 package com.github.rerorero.kafka.vault;
 
+import com.github.rerorero.kafka.connect.transform.encrypt.exception.ClientErrorException;
 import com.github.rerorero.kafka.kms.Item;
 import com.github.rerorero.kafka.kms.Service;
 import com.github.rerorero.kafka.util.Pair;
@@ -9,10 +10,9 @@ import com.github.rerorero.kafka.vault.client.VaultClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public abstract class VaultService<Param> implements Service {
@@ -26,15 +26,15 @@ public abstract class VaultService<Param> implements Service {
         this.config = config;
     }
 
-    protected abstract Param newParameter(Item item);
+    protected abstract Param newParameter(Object item);
 
     protected abstract Item newItemResult(String result);
 
     protected abstract List<String> invokeCrypto(List<Param> params);
 
     @Override
-    public <F> Map<F, Item> doCrypto(Map<F, Item> items) {
-        List<Pair<F, Item>> list = new ArrayList<>();
+    public <F> Map<F, Item> doCrypto(Map<F, Object> items) {
+        List<Pair<F, Object>> list = new ArrayList<>();
         items.forEach((key, item) -> {
             list.add(new Pair(key, item));
         });
@@ -59,8 +59,18 @@ public abstract class VaultService<Param> implements Service {
         }
 
         @Override
-        protected EncryptParameter newParameter(Item item) {
-            return new EncryptParameter(item.asBase64String(), config.getContext());
+        protected EncryptParameter newParameter(Object item) {
+            String base64Text;
+            if (item instanceof String) {
+                String s = (String) item;
+                base64Text = Base64.getEncoder().encodeToString(s.getBytes(Charset.defaultCharset()));
+            } else if (item instanceof byte[]) {
+                base64Text = Base64.getEncoder().encodeToString((byte[]) item);
+            } else {
+                throw new ClientErrorException("not supported field type: " + item.getClass());
+            }
+
+            return new EncryptParameter(base64Text, config.getContext());
         }
 
         @Override
@@ -80,8 +90,16 @@ public abstract class VaultService<Param> implements Service {
         }
 
         @Override
-        protected DecryptParameter newParameter(Item item) {
-            return new DecryptParameter(item.asText(), config.getContext());
+        protected DecryptParameter newParameter(Object item) {
+            String text;
+            if (item instanceof String) {
+                text = (String) item;
+            } else if (item instanceof byte[]) {
+                text = new String((byte[]) item, Charset.defaultCharset());
+            } else {
+                throw new ClientErrorException("not supported field type: " + item.getClass());
+            }
+            return new DecryptParameter(text, config.getContext());
         }
 
         @Override

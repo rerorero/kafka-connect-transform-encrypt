@@ -11,35 +11,6 @@ public abstract class Item {
         BINARY,
     }
 
-    public static Item fromObject(Object item) {
-        if (item instanceof String) {
-            return new StringItem((String) item);
-        } else if (item instanceof byte[]) {
-            return new BytesItem((byte[]) item);
-        }
-        return new StringItem(item.toString());
-    }
-//
-//    public static Item fromString(String text, Encoding enc) {
-//        switch (enc) {
-//            case STRING:
-//                return new StringItem(text);
-//            case BINARY:
-//                return new BytesItem(s2b(text));
-//        }
-//        return new StringItem(text);
-//    }
-//
-//    public static Item fromBytes(byte[] bytes, Encoding enc) {
-//        switch (enc) {
-//            case STRING:
-//                return new StringItem(b2s(Base64.getEncoder().encode(bytes)));
-//            case BINARY:
-//                return new BytesItem(bytes);
-//        }
-//        return new BytesItem(bytes);
-//    }
-
     public static Item fromBase64(String base64text) {
         return new BytesItem(Base64.getDecoder().decode(base64text));
     }

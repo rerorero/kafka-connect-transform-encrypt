@@ -4,6 +4,9 @@ import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultConfig;
 import com.bettercloud.vault.VaultException;
 import com.github.rerorero.kafka.connect.transform.encrypt.condition.Conditions;
+import com.github.rerorero.kafka.jsonpath.JsonPathException;
+import com.github.rerorero.kafka.jsonpath.MapSupport;
+import com.github.rerorero.kafka.jsonpath.StructSupport;
 import com.github.rerorero.kafka.kms.CryptoConfig;
 import com.github.rerorero.kafka.kms.Item;
 import com.github.rerorero.kafka.kms.Service;
@@ -11,9 +14,6 @@ import com.github.rerorero.kafka.vault.VaultCryptoConfig;
 import com.github.rerorero.kafka.vault.VaultService;
 import com.github.rerorero.kafka.vault.client.VaultClient;
 import com.github.rerorero.kafka.vault.client.VaultClientImpl;
-import com.github.rerorero.kafka.jsonpath.JsonPathException;
-import com.github.rerorero.kafka.jsonpath.MapSupport;
-import com.github.rerorero.kafka.jsonpath.StructSupport;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.transforms.util.SimpleConfig;
@@ -36,12 +36,10 @@ public abstract class Config {
     private static final OneOfValidator<String> modeValidator = new OneOfValidator<>(MODE_ENCRYPT, MODE_DECRYPT);
 
     public static final String FIELDS = "fields";
-    public static final String FIELD_ENCODING_IN = "field.encoding.in";
     public static final String FIELD_ENCODING_OUT = "field.encoding.out";
     public static final String FIELD_ENCODING_STRING = "string";
     public static final String FIELD_ENCODING_BINARY = "binary";
-    public static final String FIELD_ENCODING_BASE64 = "base64";
-    private static final OneOfValidator<String> encodingValidator = new OneOfValidator<>(FIELD_ENCODING_STRING, FIELD_ENCODING_BINARY, FIELD_ENCODING_BASE64);
+    private static final OneOfValidator<String> encodingValidator = new OneOfValidator<>(FIELD_ENCODING_STRING, FIELD_ENCODING_BINARY);
 
     public static final String CONDITION_FIELD = "condition.field";
     public static final String CONDITION_EQUALS = "condition.equals";
@@ -61,9 +59,7 @@ public abstract class Config {
             .define(FIELDS, ConfigDef.Type.LIST, new ArrayList<String>(),
                     ConfigDef.Importance.HIGH, "JsonPath expression string to specify the field to be encrypted or decrypted."
                             + "Multiple paths can be specified separated by commas.")
-            .define(FIELD_ENCODING_IN, ConfigDef.Type.STRING, FIELD_ENCODING_STRING,
-                    ConfigDef.Importance.LOW, "Encoding of input field before encrypted or decrypted.")
-            .define(FIELD_ENCODING_OUT, ConfigDef.Type.STRING, null,
+            .define(FIELD_ENCODING_OUT, ConfigDef.Type.STRING, FIELD_ENCODING_STRING, encodingValidator,
                     ConfigDef.Importance.LOW, "Encoding of output field after encrypted or decrypted.")
             .define(CONDITION_FIELD, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.LOW, "(optional) Specifies the condition for the transform."
@@ -161,11 +157,7 @@ public abstract class Config {
             // general configurations
             this.fieldSel = newFieldSelector(new HashSet<>(conf.getList(FIELDS)));
             this.conds = newConditions(conf.getString(CONDITION_FIELD), conf.getString(CONDITION_EQUALS));
-            this.cryptoConf = new CryptoConfig(
-                    encodingOf(conf.getString(FIELD_ENCODING_IN)),
-                    encodingOf(conf.getString(FIELD_ENCODING_OUT) != null ? conf.getString(FIELD_ENCODING_OUT) : conf.getString(FIELD_ENCODING_IN))
-            );
-
+            this.cryptoConf = new CryptoConfig(encodingOf(conf.getString(FIELD_ENCODING_OUT)));
 
             if (conf.getString(SERVICE).equals(SERVICE_VAULT)) {
                 this.service = vaultService(conf);

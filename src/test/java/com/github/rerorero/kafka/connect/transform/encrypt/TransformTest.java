@@ -80,7 +80,7 @@ class TransformTest {
     private Transform<SinkRecord> setUp(List<String> fieldList, Item.Encoding enc, Conditions conds) {
         this.mockedService = mock(Service.class);
         Set<String> fields = new HashSet<>(fieldList);
-        CryptoConfig cryptoConf = new CryptoConfig(enc, enc);
+        CryptoConfig cryptoConf = new CryptoConfig(enc);
         Config config = new Config() {
             @Override
             public Service cryptoService() {

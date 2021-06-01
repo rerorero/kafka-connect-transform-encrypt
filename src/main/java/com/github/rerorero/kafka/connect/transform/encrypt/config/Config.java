@@ -60,7 +60,7 @@ public abstract class Config {
     public static final String AWSKMS_ACCESS_KEY_ID = "awskms.aws_access_key_id";
     public static final String AWSKMS_SECRET_ACCESS_KEY = "awskms.aws_secret_access_key";
     public static final String AWSKMS_REGION = "awskms.aws_region";
-    public static final String AWSKMS_KEYID = "awskms.key_id";
+    public static final String AWSKMS_CMK_KEYID = "awskms.cmk_key_id";
     public static final String AWSKMS_CONTEXTS = "awskms.contexts";
     public static final String AWSKMS_ENCRYPTION_ALGORITHM = "awskms.encryption_algorithm";
     public static final String AWSKMS_ENDPOINT = "awskms.endpoint";
@@ -84,11 +84,11 @@ public abstract class Config {
                     ConfigDef.Importance.LOW, "(optional) Specifies the condition for the transform."
                             + "When condition.* are set, transform is performed only if the value of the JsonPath field specified by " + CONDITION_FIELD + " matches " + CONDITION_EQUALS)
             // Vault
-            .define(VAULT_URL, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE,
+            .define(VAULT_URL, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.HIGH, "URL of the Vault server.")
             .define(VAULT_TOKEN, ConfigDef.Type.PASSWORD, null,
                     ConfigDef.Importance.HIGH, "The token used to access Vault.")
-            .define(VAULT_KEY_NAME, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE,
+            .define(VAULT_KEY_NAME, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.HIGH, "Name of the key to encrypt or decrypt")
             .define(VAULT_CONTEXT, ConfigDef.Type.STRING, null, Base64StringValidator.singleton,
                     ConfigDef.Importance.MEDIUM, "(optional) Specifies the Base64 context for key derivation. This is required if key derivation is enabled for the key.")
@@ -99,7 +99,7 @@ public abstract class Config {
                     ConfigDef.Importance.MEDIUM, "AWS_SECRET_ACCESS_KEY of the AWS credentials to access KMS")
             .define(AWSKMS_REGION, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.MEDIUM, "The AWS region to use.")
-            .define(AWSKMS_KEYID, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE,
+            .define(AWSKMS_CMK_KEYID, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.HIGH, "Key ARN of your AWS KMS customer master key (CMK)")
             .define(AWSKMS_CONTEXTS, ConfigDef.Type.STRING, "",
                     ConfigDef.Importance.MEDIUM, "Specifies the encryption contexts with 'key=value' pairs separated by commas.")
@@ -200,6 +200,13 @@ public abstract class Config {
         }
 
         private Service vaultService(SimpleConfig conf) {
+            if (conf.getString(VAULT_URL) == null) {
+                throw new ConfigException(VAULT_URL, null, "Required parameter for " + SERVICE_VAULT + " service");
+            }
+            if (conf.getString(VAULT_KEY_NAME) == null) {
+                throw new ConfigException(VAULT_KEY_NAME, null, "Required parameter for " + SERVICE_VAULT + " service");
+            }
+
             final VaultConfig vc = new VaultConfig().address(conf.getString(VAULT_URL));
             if (conf.getPassword(VAULT_TOKEN) != null) {
                 vc.token(conf.getPassword(VAULT_TOKEN).value());
@@ -224,8 +231,15 @@ public abstract class Config {
         }
 
         private Service awsKmsService(SimpleConfig conf) {
-            String accessKeyID = conf.getString(AWSKMS_ACCESS_KEY_ID);
-            String accessSecret = conf.getString(AWSKMS_SECRET_ACCESS_KEY);
+            if (conf.getString(AWSKMS_CMK_KEYID) == null) {
+                throw new ConfigException(AWSKMS_CMK_KEYID, null, "Required parameter for " + SERVICE_AWSKMS + " service");
+            }
+            if (conf.getString(AWSKMS_ENDPOINT) != null && conf.getString(AWSKMS_REGION) == null) {
+                throw new ConfigException(AWSKMS_REGION, null, "Required parameter if " + AWSKMS_ENDPOINT + " is specified");
+            }
+
+            String accessKeyID = conf.getPassword(AWSKMS_ACCESS_KEY_ID) == null ? null : conf.getPassword(AWSKMS_ACCESS_KEY_ID).value();
+            String accessSecret = conf.getPassword(AWSKMS_SECRET_ACCESS_KEY) == null ? null : conf.getPassword(AWSKMS_SECRET_ACCESS_KEY).value();
             Optional<AWSCredentials> creds;
             if (accessKeyID != null && accessSecret != null) {
                 creds = Optional.of(new BasicAWSCredentials(accessKeyID, accessSecret));
@@ -237,13 +251,16 @@ public abstract class Config {
 
             Map<String, String> context = new HashMap<>();
             for (String pair : Strings.split(conf.getString(AWSKMS_CONTEXTS), ',')) {
+                if (pair.equals("")) {
+                    break;
+                }
                 String[] keyAndValue = pair.split(pair, '=');
                 if (keyAndValue.length != 2) {
                     throw new ConfigException(AWSKMS_CONTEXTS, pair, "Use the 'key=value' format, separated by commas.");
                 }
             }
 
-            AWSKMSCryptoConfig config = new AWSKMSCryptoConfig(creds, Optional.ofNullable(conf.getString(AWSKMS_REGION)), conf.getString(AWSKMS_KEYID),
+            AWSKMSCryptoConfig config = new AWSKMSCryptoConfig(creds, Optional.ofNullable(conf.getString(AWSKMS_REGION)), conf.getString(AWSKMS_CMK_KEYID),
                     context, Optional.ofNullable(conf.getString(AWSKMS_ENCRYPTION_ALGORITHM)), Optional.ofNullable(conf.getString(AWSKMS_ENDPOINT)));
 
             if (conf.getString(MODE).equals(MODE_ENCRYPT)) {

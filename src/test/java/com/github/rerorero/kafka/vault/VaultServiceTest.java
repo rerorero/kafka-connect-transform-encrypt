@@ -35,8 +35,8 @@ class VaultServiceTest {
         expectedMockArgs1.add(new EncryptParameter("RnJhbnR6", Optional.of("context")));
         expectedMockArgs1.add(new EncryptParameter("S2Fma2E=", Optional.of("context")));
         Map<Integer, Item> expected1 = new HashMap<>();
-        expected1.put(1, new Item.StringItem("encrypted-Frantz"));
-        expected1.put(2, new Item.StringItem("encrypted-Kafka"));
+        expected1.put(1, new Item.CipherText("encrypted-Frantz"));
+        expected1.put(2, new Item.CipherText("encrypted-Kafka"));
 
         // case2 binary -> string: without context
         VaultCryptoConfig config2 = new VaultCryptoConfig(keyName, Optional.empty());
@@ -50,8 +50,8 @@ class VaultServiceTest {
         expectedMockArgs2.add(new EncryptParameter("RnJhbnR6", Optional.empty()));
         expectedMockArgs2.add(new EncryptParameter("S2Fma2E=", Optional.empty()));
         Map<Integer, Item> expected2 = new HashMap<>();
-        expected2.put(1, new Item.StringItem("encrypted-Frantz"));
-        expected2.put(2, new Item.StringItem("encrypted-Kafka"));
+        expected2.put(1, new Item.CipherText("encrypted-Frantz"));
+        expected2.put(2, new Item.CipherText("encrypted-Kafka"));
 
         // case3 empty
         VaultCryptoConfig config3 = new VaultCryptoConfig(keyName, Optional.of("context"));
@@ -80,8 +80,8 @@ class VaultServiceTest {
         expectedMockArgs1.add(new DecryptParameter("encrypted-Frantz", Optional.of("context")));
         expectedMockArgs1.add(new DecryptParameter("encrypted-Kafka", Optional.of("context")));
         Map<Integer, Item> expected1 = new HashMap<>();
-        expected1.put(1, new Item.BytesItem("Frantz".getBytes(Charset.defaultCharset())));
-        expected1.put(2, new Item.BytesItem("Kafka".getBytes(Charset.defaultCharset())));
+        expected1.put(1, new Item.PlainBytes("Frantz".getBytes(Charset.defaultCharset())));
+        expected1.put(2, new Item.PlainBytes("Kafka".getBytes(Charset.defaultCharset())));
 
         // case2 binary -> string: without context
         VaultCryptoConfig config2 = new VaultCryptoConfig(keyName, Optional.empty());
@@ -95,8 +95,8 @@ class VaultServiceTest {
         expectedMockArgs2.add(new DecryptParameter("one", Optional.empty()));
         expectedMockArgs2.add(new DecryptParameter("two", Optional.empty()));
         Map<Integer, Item> expected2 = new HashMap<>();
-        expected2.put(1, new Item.BytesItem("Frantz".getBytes(Charset.defaultCharset())));
-        expected2.put(2, new Item.BytesItem("Kafka".getBytes(Charset.defaultCharset())));
+        expected2.put(1, new Item.PlainBytes("Frantz".getBytes(Charset.defaultCharset())));
+        expected2.put(2, new Item.PlainBytes("Kafka".getBytes(Charset.defaultCharset())));
 
         // case5 empty
         VaultCryptoConfig config3 = new VaultCryptoConfig(keyName, Optional.of("context"));

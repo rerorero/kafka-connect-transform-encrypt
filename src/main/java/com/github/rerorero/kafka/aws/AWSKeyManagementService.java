@@ -102,8 +102,10 @@ public abstract class AWSKeyManagementService implements Service {
             } else {
                 throw new ClientErrorException("type '" + item.getClass().getTypeName() + "' for field '" + field + "' is not supported");
             }
+
             CryptoResult<byte[], KmsMasterKey> res = client.encryptData(keyProvider, parameter, config.getContext());
-            return new Item.BytesItem(res.getResult());
+
+            return new Item.CipherBytes(res.getResult());
         }
     }
 
@@ -135,7 +137,7 @@ public abstract class AWSKeyManagementService implements Service {
                 throw new ClientErrorException("Encryption context is wrong");
             }
 
-            return new Item.BytesItem(res.getResult());
+            return new Item.PlainBytes(res.getResult());
         }
     }
 }

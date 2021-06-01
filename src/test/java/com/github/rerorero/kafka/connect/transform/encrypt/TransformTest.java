@@ -112,9 +112,9 @@ class TransformTest {
         Transform sut = setUp(Arrays.asList("$.text", "$.struct.array[*]", "$.unknown"), Item.Encoding.STRING, new Conditions("$.text", "PLAINTEXT"));
 
         Map<Pair<String, String>, Item> mockedResult = new HashMap<>();
-        mockedResult.put(new Pair("$.text", "$.text"), new Item.StringItem("encrypted_text"));
-        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[0]"), new Item.StringItem("encrypted_array1"));
-        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[1]"), new Item.StringItem("encrypted_array2"));
+        mockedResult.put(new Pair("$.text", "$.text"), new Item.CipherText("encrypted_text"));
+        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[0]"), new Item.CipherText("encrypted_array1"));
+        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[1]"), new Item.CipherText("encrypted_array2"));
         ArgumentCaptor<Map<Pair<String, String>, Object>> mockArg = ArgumentCaptor.forClass(Map.class);
         when(mockedService.doCrypto(ArgumentMatchers.<Map<Pair<String, String>, Object>>any())).thenReturn(mockedResult);
 
@@ -140,9 +140,9 @@ class TransformTest {
         Transform sut = setUp(Arrays.asList("$.byte", "$.struct.array[*]", "$.unknown"), Item.Encoding.BINARY, new Conditions());
 
         Map<Pair<String, String>, Item> mockedResult = new HashMap<>();
-        mockedResult.put(new Pair("$.byte", "$.byte"), new Item.BytesItem("encrypted".getBytes()));
-        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[0]"), new Item.BytesItem("encrypted_binary1".getBytes()));
-        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[1]"), new Item.BytesItem("encrypted_binary2".getBytes()));
+        mockedResult.put(new Pair("$.byte", "$.byte"), new Item.CipherBytes("encrypted".getBytes()));
+        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[0]"), new Item.CipherBytes("encrypted_binary1".getBytes()));
+        mockedResult.put(new Pair("$.struct.array[*]", "$.struct.array[1]"), new Item.CipherBytes("encrypted_binary2".getBytes()));
         ArgumentCaptor<Map<Pair<String, String>, Object>> mockArg = ArgumentCaptor.forClass(Map.class);
         when(mockedService.doCrypto(ArgumentMatchers.<Map<Pair<String, String>, Object>>any())).thenReturn(mockedResult);
 

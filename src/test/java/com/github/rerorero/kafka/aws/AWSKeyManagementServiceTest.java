@@ -74,13 +74,13 @@ class AWSKeyManagementServiceTest {
         Map<String, Item> encrypted = encryptor.doCrypto(encParams);
 
         Map<String, Object> decParams = new HashMap<>();
-        decParams.put("item1", encrypted.get("item1").asBase64String());
-        decParams.put("item2", encrypted.get("item2").asBase64String());
+        decParams.put("item1", encrypted.get("item1").asObject(Item.Encoding.STRING));
+        decParams.put("item2", encrypted.get("item2").asObject(Item.Encoding.STRING));
         Map<String, Item> actual = decryptor.doCrypto(decParams);
 
         Map<String, Item> expected = new HashMap<>();
-        expected.put("item1", new Item.BytesItem("Kafka".getBytes(Charset.defaultCharset())));
-        expected.put("item2", new Item.BytesItem("Frantz".getBytes(Charset.defaultCharset())));
+        expected.put("item1", new Item.PlainBytes("Kafka".getBytes()));
+        expected.put("item2", new Item.PlainBytes("Frantz".getBytes()));
 
         assertEquals(expected, actual);
     }
@@ -105,13 +105,13 @@ class AWSKeyManagementServiceTest {
         Map<String, Item> encrypted = encryptor.doCrypto(encParams);
 
         Map<String, Object> decParams = new HashMap<>();
-        decParams.put("item1", encrypted.get("item1").asBase64String());
-        decParams.put("item2", encrypted.get("item2").asBase64String());
+        decParams.put("item1", encrypted.get("item1").asObject(Item.Encoding.STRING));
+        decParams.put("item2", encrypted.get("item2").asObject(Item.Encoding.STRING));
         Map<String, Item> actual = decryptor.doCrypto(decParams);
 
         Map<String, Item> expected = new HashMap<>();
-        expected.put("item1", new Item.BytesItem("Kafka".getBytes(Charset.defaultCharset())));
-        expected.put("item2", new Item.BytesItem("Frantz".getBytes(Charset.defaultCharset())));
+        expected.put("item1", new Item.PlainBytes("Kafka".getBytes()));
+        expected.put("item2", new Item.PlainBytes("Frantz".getBytes()));
 
         assertEquals(expected, actual);
     }

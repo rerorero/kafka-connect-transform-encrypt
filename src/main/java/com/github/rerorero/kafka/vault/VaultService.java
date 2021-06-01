@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -75,7 +74,7 @@ public abstract class VaultService<Param> implements Service {
 
         @Override
         protected Item newItemResult(String result) {
-            return new Item.StringItem(result);
+            return new Item.CipherText(result);
         }
 
         @Override
@@ -104,7 +103,8 @@ public abstract class VaultService<Param> implements Service {
 
         @Override
         protected Item newItemResult(String result) {
-            return Item.fromBase64(result);
+            byte[] bytes = Base64.getDecoder().decode(result);;
+            return new Item.PlainBytes(bytes);
         }
 
         @Override

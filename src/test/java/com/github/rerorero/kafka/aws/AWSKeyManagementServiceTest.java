@@ -1,5 +1,7 @@
 package com.github.rerorero.kafka.aws;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.bettercloud.vault.json.Json;
 import com.github.rerorero.kafka.connect.transform.encrypt.exception.ClientErrorException;
 import com.github.rerorero.kafka.connect.transform.encrypt.exception.ServerErrorException;
@@ -28,6 +30,7 @@ class AWSKeyManagementServiceTest {
 
     private static String keyArn;
     private static String kmsAddr;
+    private static AWSCredentials creds;
 
     @BeforeAll
     public static void tearUp() {
@@ -47,6 +50,7 @@ class AWSKeyManagementServiceTest {
         }
 
         kmsAddr = String.format("http://%s:%d/", container.getHost(), container.getFirstMappedPort());
+        creds = new BasicAWSCredentials("dummy", "dummy");
     }
 
     @AfterAll
@@ -57,7 +61,7 @@ class AWSKeyManagementServiceTest {
     @Test
     void testEncryptStringWithContext() {
         AWSKMSCryptoConfig config = new AWSKMSCryptoConfig(
-                Optional.empty(),
+                Optional.of(creds),
                 Optional.of("us-west-1"),
                 keyArn,
                 Collections.singletonMap("dummy", "context"),
@@ -88,7 +92,7 @@ class AWSKeyManagementServiceTest {
     @Test
     void testEncryptBinaryWithoutContext() {
         AWSKMSCryptoConfig config = new AWSKMSCryptoConfig(
-                Optional.empty(),
+                Optional.of(creds),
                 Optional.of("us-west-1"),
                 keyArn,
                 null,
@@ -119,7 +123,7 @@ class AWSKeyManagementServiceTest {
     @Test
     void testFailToEncryptDueToWrongEndpoint() {
         AWSKMSCryptoConfig config = new AWSKMSCryptoConfig(
-                Optional.empty(),
+                Optional.of(creds),
                 Optional.of("us-west-1"),
                 keyArn,
                 null,
@@ -133,7 +137,7 @@ class AWSKeyManagementServiceTest {
     @Test
     void testFailToDecryptDueToWrongContext() {
         AWSKMSCryptoConfig config1 = new AWSKMSCryptoConfig(
-                Optional.empty(),
+                Optional.of(creds),
                 Optional.of("us-west-1"),
                 keyArn,
                 Collections.singletonMap("dummy", "context"),
@@ -141,7 +145,7 @@ class AWSKeyManagementServiceTest {
                 Optional.of(kmsAddr)
         );
         AWSKMSCryptoConfig config2 = new AWSKMSCryptoConfig(
-                Optional.empty(),
+                Optional.of(creds),
                 Optional.of("us-west-1"),
                 keyArn,
                 Collections.singletonMap("dummy", "wrong"),

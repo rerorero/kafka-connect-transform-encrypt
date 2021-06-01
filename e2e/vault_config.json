@@ -1,8 +1,8 @@
 {
-  "name": "datagen-pageviews",
+  "name": "datagen-pageviews-vault",
   "config": {
     "connector.class": "io.confluent.kafka.connect.datagen.DatagenConnector",
-    "kafka.topic": "pageviews",
+    "kafka.topic": "pageviews-vault",
     "quickstart": "pageviews",
     "key.converter": "org.apache.kafka.connect.storage.StringConverter",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",

@@ -4,6 +4,7 @@
 
 - Encryption and decryption using external key management service. Now it supports:
   - [HashiCopr Vault](https://www.vaultproject.io/docs/secrets/transit)
+  - [AWS KMS](https://aws.amazon.com/kms/)
 - Encryption and decryption at the field level.
 - You can use [JsonPath](https://github.com/json-path/JsonPath) to specify the fields. NOTE: It has limited support for JsonPath syntax for now, please see [JsonPath Limitations](#jsonpath-limitations).
 - Parse as a Struct when schema present, or a Map in the case of schemaless data.
@@ -69,6 +70,29 @@ Specifies the name of the encryption/decryption key to encrypt/decrypt against.
 #### `vault.context` (optional)
 
 Specifies the Base64 context for key derivation. This is required if key derivation is enabled.
+
+## Configurations for AWS KMS
+
+#### `awskms.aws_access_key_id`, `awskms.aws_secret_access_key` and `awskms.aws_region`
+
+AWS credentials and the region to access KMS.
+
+#### `awskms.cmk_key_id`
+
+Key ARN of the customer master key (CMK).
+
+#### `awskms.contexts`
+
+Specifies the encryption contexts.
+It's parsed as a list of comma delimited `key=value` pairs. e.g. `key1=context1,key2=context2`
+
+#### `awskms.encryption_algorithm`
+
+Specifies [the encryption algorithm](https://aws.github.io/aws-encryption-sdk-java/com/amazonaws/encryptionsdk/CryptoAlgorithm.html).
+
+#### `awskms.endpoint`
+
+Specifies the endpoint to access KMS.
 
 ## JsonPath Limitations
 

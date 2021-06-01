@@ -79,12 +79,11 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
             }
 
             // Key of the map is a pair of JsonPath expression and the field path
-            final Map<Pair<String, String>, Item> params = new HashMap<>();
+            final Map<Pair<String, String>, Object> params = new HashMap<>();
             getters.forEach((jsonPathExp, getter) ->
-                    getter.run(value).forEach((fieldPath, fieldValue) -> {
-                        Item item = itemFromEncodedObject(fieldPath, fieldValue, cryptoConfig.getInputEncoding());
-                        params.put(new Pair(jsonPathExp, fieldPath), item);
-                    })
+                    getter.run(value).forEach((fieldPath, fieldValue) ->
+                            params.put(new Pair(jsonPathExp, fieldPath), fieldValue)
+                    )
             );
 
             if (params.isEmpty()) {
@@ -118,14 +117,6 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
             throw new DataException(e);
         } catch (JsonPathException e) {
             throw new DataException(e);
-        }
-    }
-
-    private Item itemFromEncodedObject(String name, Object obj, Item.Encoding encoding) {
-        try {
-            return Item.fromEncodedObject(obj, encoding);
-        } catch (ClassCastException e) {
-            throw new DataException("Failed to read '" + name + "' field as " + encoding.toString() + ": " + e.getMessage());
         }
     }
 

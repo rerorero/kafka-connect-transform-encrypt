@@ -1,15 +1,12 @@
 package com.github.rerorero.kafka.vault;
 
-import com.github.rerorero.kafka.kms.CryptoConfig;
-
 import java.util.Optional;
 
-public class VaultCryptoConfig extends CryptoConfig {
+public class VaultCryptoConfig {
     private String keyName;
     private Optional<String> context;
 
-    public VaultCryptoConfig(CryptoConfig common, String keyName, Optional<String> context) {
-        super(common);
+    public VaultCryptoConfig(String keyName, Optional<String> context) {
         this.keyName = keyName;
         this.context = context;
     }

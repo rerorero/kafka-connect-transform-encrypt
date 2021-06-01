@@ -15,7 +15,6 @@ import com.github.rerorero.kafka.kms.Item;
 import com.github.rerorero.kafka.kms.Service;
 import com.github.rerorero.kafka.util.Pair;
 
-import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;

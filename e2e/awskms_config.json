@@ -1,0 +1,38 @@
+{
+  "name": "datagen-pageviews-awskms",
+  "config": {
+    "connector.class": "io.confluent.kafka.connect.datagen.DatagenConnector",
+    "kafka.topic": "pageviews-awskms",
+    "quickstart": "pageviews",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "max.interval": 500,
+    "iterations": 100,
+    "tasks.max": "1",
+
+    "transforms": "encrypt,decrypt",
+
+    "transforms.encrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.encrypt.service": "awskms",
+    "transforms.encrypt.mode": "encrypt",
+    "transforms.encrypt.fields": "$.userid,$.pageid",
+    "transforms.encrypt.awskms.aws_access_key_id": "dummy",
+    "transforms.encrypt.awskms.aws_secret_access_key": "dummy",
+    "transforms.encrypt.awskms.contexts": "ctx1=foo,ctx2=bar",
+    "transforms.encrypt.awskms.cmk_key_id": "$KEYARN",
+    "transforms.encrypt.awskms.aws_region": "us-west-1",
+    "transforms.encrypt.awskms.endpoint": "http://awskms:8080/",
+
+    "transforms.decrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.decrypt.service": "awskms",
+    "transforms.decrypt.mode": "decrypt",
+    "transforms.decrypt.fields": "$.userid,$.pageid",
+    "transforms.decrypt.awskms.aws_access_key_id": "dummy",
+    "transforms.decrypt.awskms.aws_secret_access_key": "dummy",
+    "transforms.decrypt.awskms.contexts": "ctx1=foo,ctx2=bar",
+    "transforms.decrypt.awskms.cmk_key_id": "$KEYARN",
+    "transforms.decrypt.awskms.aws_region": "us-west-1",
+    "transforms.decrypt.awskms.endpoint": "http://awskms:8080/"
+  }
+}

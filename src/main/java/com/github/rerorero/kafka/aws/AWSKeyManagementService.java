@@ -96,7 +96,7 @@ public abstract class AWSKeyManagementService implements Service {
         protected Item callEndpoint(String field, Object item) {
             byte[] parameter;
             if (item instanceof String) {
-                parameter = ((String) item).getBytes(Charset.defaultCharset());
+                parameter = ((String) item).getBytes();
             } else if (item instanceof byte[]) {
                 parameter = (byte[]) item;
             } else {

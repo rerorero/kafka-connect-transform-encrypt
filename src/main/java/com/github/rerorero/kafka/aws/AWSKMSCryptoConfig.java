@@ -1,29 +1,36 @@
 package com.github.rerorero.kafka.aws;
 
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 public class AWSKMSCryptoConfig {
-    private final AWSCredentials creds;
-    private final String region;
+    private final Optional<AWSCredentials> creds;
+    private final Optional<String> region;
     private final String keyID;
     private final Map<String, String> context;
     private final Optional<String> encryptionAlgorithm;
+    private final Optional<String> kmsEndpoint;
 
     public AWSKMSCryptoConfig(
-            AWSCredentials creds,
-            String region,
+            Optional<AWSCredentials> creds,
+            Optional<String> region,
             String keyID,
             Map<String, String> context,
-            Optional<String> encryptionAlgorithm
+            Optional<String> encryptionAlgorithm,
+            Optional<String> kmsEndpoint
     ) {
         this.creds = creds;
         this.region = region;
         this.keyID = keyID;
-        this.context = context;
+        this.context = context != null ? context : new HashMap<>();
         this.encryptionAlgorithm = encryptionAlgorithm;
+        this.kmsEndpoint = kmsEndpoint;
     }
 
     String getKeyID() {
@@ -38,11 +45,16 @@ public class AWSKMSCryptoConfig {
         return encryptionAlgorithm;
     }
 
-    AWSCredentials getCreds() {
-        return creds;
+    AWSCredentialsProvider getCredentialProvider() {
+        return creds.<AWSCredentialsProvider>map(c -> new AWSStaticCredentialsProvider(c))
+                .orElse(DefaultAWSCredentialsProviderChain.getInstance());
     }
 
-    String getRegion() {
+    Optional<String> getRegion() {
         return region;
+    }
+
+    Optional<String> getKmsEndpoint() {
+        return kmsEndpoint;
     }
 }

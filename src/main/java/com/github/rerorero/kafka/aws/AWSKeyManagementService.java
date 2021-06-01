@@ -1,12 +1,16 @@
 package com.github.rerorero.kafka.aws;
 
+import com.amazonaws.SdkClientException;
+import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.encryptionsdk.AwsCrypto;
 import com.amazonaws.encryptionsdk.CryptoAlgorithm;
 import com.amazonaws.encryptionsdk.CryptoResult;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKey;
 import com.amazonaws.encryptionsdk.kms.KmsMasterKeyProvider;
+import com.amazonaws.services.kms.AWSKMSClientBuilder;
 import com.github.rerorero.kafka.connect.transform.encrypt.exception.ClientErrorException;
 import com.github.rerorero.kafka.connect.transform.encrypt.exception.ServerErrorException;
+import com.github.rerorero.kafka.connect.transform.encrypt.exception.ServiceException;
 import com.github.rerorero.kafka.kms.Item;
 import com.github.rerorero.kafka.kms.Service;
 import com.github.rerorero.kafka.util.Pair;
@@ -14,6 +18,7 @@ import com.github.rerorero.kafka.util.Pair;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 
 public abstract class AWSKeyManagementService implements Service {
@@ -25,27 +30,49 @@ public abstract class AWSKeyManagementService implements Service {
         final AwsCrypto.Builder builder = AwsCrypto.builder();
         config.getEncryptionAlgorithm().ifPresent(a -> builder.withEncryptionAlgorithm(CryptoAlgorithm.valueOf(a)));
         this.client = builder.build();
+
+        AWSKMSClientBuilder cliBuilder = AWSKMSClientBuilder.standard();
+        cliBuilder.withCredentials(config.getCredentialProvider());
+        config.getKmsEndpoint().ifPresent(endpoint ->
+                cliBuilder.withEndpointConfiguration(
+                        new AwsClientBuilder.EndpointConfiguration(endpoint, config.getRegion().get())));
+        if (!config.getKmsEndpoint().isPresent()) {
+            config.getRegion().ifPresent(r -> cliBuilder.withRegion(r));
+        }
+
         this.keyProvider = KmsMasterKeyProvider.builder()
-                .withCredentials(config.getCreds())
-                .withDefaultRegion(config.getRegion())
+                .withCustomClientFactory(region -> cliBuilder.build())
                 .buildStrict(config.getKeyID());
+
         this.config = config;
     }
 
 
     @Override
     public <F> Map<F, Item> doCrypto(Map<F, Object> items) {
-        List<CompletableFuture<Pair<F, Item>>> futureList = new ArrayList<>();
+        final List<CompletableFuture<Pair<F, Item>>> futureList = new ArrayList<>();
         items.forEach((field, item) -> {
             futureList.add(CompletableFuture.supplyAsync(() -> {
-                Item converted = callEndpoint(field.toString(), item);
-                return new Pair(field, converted);
+                try {
+                    Item converted = callEndpoint(field.toString(), item);
+                    return new Pair(field, converted);
+                } catch (SdkClientException e) {
+                    throw new ServerErrorException(e);
+                }
             }));
         });
 
-        CompletableFuture.allOf(futureList.toArray(new CompletableFuture[futureList.size()])).join();
+        try {
+            CompletableFuture.allOf(futureList.toArray(new CompletableFuture[futureList.size()])).join();
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof ServiceException) {
+                throw (ServiceException) e.getCause();
+            } else {
+                throw new ServiceException(e);
+            }
+        }
 
-        Map<F, Item> out = new HashMap<>();
+        final Map<F, Item> out = new HashMap<>();
         futureList.forEach(result -> {
             try {
                 Pair<F, Item> pair = result.get();
@@ -96,7 +123,7 @@ public abstract class AWSKeyManagementService implements Service {
                 throw new ClientErrorException("type '" + item.getClass().getTypeName() + "' for field '" + field + "' is not supported");
             }
 
-            CryptoResult<byte[], KmsMasterKey> res = client.decryptData(keyProvider, parameter);
+            final CryptoResult<byte[], KmsMasterKey> res = client.decryptData(keyProvider, parameter);
 
             // verify decrypted key and context
             if (!res.getMasterKeyIds().get(0).equals(config.getKeyID())) {

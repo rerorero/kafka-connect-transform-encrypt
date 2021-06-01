@@ -1,8 +1,12 @@
 package com.github.rerorero.kafka.connect.transform.encrypt.config;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.bettercloud.vault.Vault;
 import com.bettercloud.vault.VaultConfig;
 import com.bettercloud.vault.VaultException;
+import com.github.rerorero.kafka.aws.AWSKMSCryptoConfig;
+import com.github.rerorero.kafka.aws.AWSKeyManagementService;
 import com.github.rerorero.kafka.connect.transform.encrypt.condition.Conditions;
 import com.github.rerorero.kafka.jsonpath.JsonPathException;
 import com.github.rerorero.kafka.jsonpath.MapSupport;
@@ -17,6 +21,7 @@ import com.github.rerorero.kafka.vault.client.VaultClientImpl;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.transforms.util.SimpleConfig;
+import org.bouncycastle.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +33,8 @@ public abstract class Config {
     // general configurations
     public static final String SERVICE = "service";
     public static final String SERVICE_VAULT = "vault";
-    private static final OneOfValidator<String> serviceValidator = new OneOfValidator<>(SERVICE_VAULT);
+    public static final String SERVICE_AWSKMS = "awskms";
+    private static final OneOfValidator<String> serviceValidator = new OneOfValidator<>(SERVICE_VAULT, SERVICE_AWSKMS);
 
     public static final String MODE = "mode";
     public static final String MODE_ENCRYPT = "encrypt";
@@ -49,6 +55,16 @@ public abstract class Config {
     public static final String VAULT_TOKEN = "vault.token";
     public static final String VAULT_KEY_NAME = "vault.key_name";
     public static final String VAULT_CONTEXT = "vault.context";
+
+    // AWS KMS
+    public static final String AWSKMS_ACCESS_KEY_ID = "awskms.aws_access_key_id";
+    public static final String AWSKMS_SECRET_ACCESS_KEY = "awskms.aws_secret_access_key";
+    public static final String AWSKMS_REGION = "awskms.aws_region";
+    public static final String AWSKMS_KEYID = "awskms.key_id";
+    public static final String AWSKMS_CONTEXTS = "awskms.contexts";
+    public static final String AWSKMS_ENCRYPTION_ALGORITHM = "awskms.encryption_algorithm";
+    public static final String AWSKMS_ENDPOINT = "awskms.endpoint";
+
 
     public static final ConfigDef DEF = new ConfigDef()
             // general
@@ -75,7 +91,22 @@ public abstract class Config {
             .define(VAULT_KEY_NAME, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE,
                     ConfigDef.Importance.HIGH, "Name of the key to encrypt or decrypt")
             .define(VAULT_CONTEXT, ConfigDef.Type.STRING, null, Base64StringValidator.singleton,
-                    ConfigDef.Importance.MEDIUM, "(optional) Specifies the Base64 context for key derivation. This is required if key derivation is enabled for the key.");
+                    ConfigDef.Importance.MEDIUM, "(optional) Specifies the Base64 context for key derivation. This is required if key derivation is enabled for the key.")
+            // AWS KMS
+            .define(AWSKMS_ACCESS_KEY_ID, ConfigDef.Type.PASSWORD, null,
+                    ConfigDef.Importance.MEDIUM, "AWS_ACCESS_KEY_ID of the AWS credentials to access KMS")
+            .define(AWSKMS_SECRET_ACCESS_KEY, ConfigDef.Type.PASSWORD, null,
+                    ConfigDef.Importance.MEDIUM, "AWS_SECRET_ACCESS_KEY of the AWS credentials to access KMS")
+            .define(AWSKMS_REGION, ConfigDef.Type.STRING, null,
+                    ConfigDef.Importance.MEDIUM, "The AWS region to use.")
+            .define(AWSKMS_KEYID, ConfigDef.Type.STRING, ConfigDef.NO_DEFAULT_VALUE,
+                    ConfigDef.Importance.HIGH, "Key ARN of your AWS KMS customer master key (CMK)")
+            .define(AWSKMS_CONTEXTS, ConfigDef.Type.STRING, "",
+                    ConfigDef.Importance.MEDIUM, "Specifies the encryption contexts with 'key=value' pairs separated by commas.")
+            .define(AWSKMS_ENCRYPTION_ALGORITHM, ConfigDef.Type.STRING, null,
+                    ConfigDef.Importance.LOW, "The encryption algorithm.")
+            .define(AWSKMS_ENDPOINT, ConfigDef.Type.STRING, null,
+                    ConfigDef.Importance.LOW, "(optional) Overrides the URL of the default KMS endpoint with given URL.");
 
     public abstract Service cryptoService();
 
@@ -161,6 +192,8 @@ public abstract class Config {
 
             if (conf.getString(SERVICE).equals(SERVICE_VAULT)) {
                 this.service = vaultService(conf);
+            } else if (conf.getString(SERVICE).equals(SERVICE_AWSKMS)) {
+                this.service = awsKmsService(conf);
             } else {
                 throw new ConfigException(SERVICE, conf.getString(SERVICE), "unknown service");
             }
@@ -188,6 +221,35 @@ public abstract class Config {
                 return new VaultService.EncryptService(client, vaultConf);
             }
             return new VaultService.DecryptService(client, vaultConf);
+        }
+
+        private Service awsKmsService(SimpleConfig conf) {
+            String accessKeyID = conf.getString(AWSKMS_ACCESS_KEY_ID);
+            String accessSecret = conf.getString(AWSKMS_SECRET_ACCESS_KEY);
+            Optional<AWSCredentials> creds;
+            if (accessKeyID != null && accessSecret != null) {
+                creds = Optional.of(new BasicAWSCredentials(accessKeyID, accessSecret));
+            } else if (accessKeyID == null && accessSecret == null) {
+                creds = Optional.empty();
+            } else {
+                throw new ConfigException("Both " + AWSKMS_ACCESS_KEY_ID + " and " + AWSKMS_SECRET_ACCESS_KEY + " must be specified");
+            }
+
+            Map<String, String> context = new HashMap<>();
+            for (String pair : Strings.split(conf.getString(AWSKMS_CONTEXTS), ',')) {
+                String[] keyAndValue = pair.split(pair, '=');
+                if (keyAndValue.length != 2) {
+                    throw new ConfigException(AWSKMS_CONTEXTS, pair, "Use the 'key=value' format, separated by commas.");
+                }
+            }
+
+            AWSKMSCryptoConfig config = new AWSKMSCryptoConfig(creds, Optional.ofNullable(conf.getString(AWSKMS_REGION)), conf.getString(AWSKMS_KEYID),
+                    context, Optional.ofNullable(conf.getString(AWSKMS_ENCRYPTION_ALGORITHM)), Optional.ofNullable(conf.getString(AWSKMS_ENDPOINT)));
+
+            if (conf.getString(MODE).equals(MODE_ENCRYPT)) {
+                return new AWSKeyManagementService.EncryptService(config);
+            }
+            return new AWSKeyManagementService.DecryptService(config);
         }
     }
 }

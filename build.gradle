@@ -10,6 +10,7 @@ ext {
   kafkaVersion = "2.8.0"
   junitJupiterVersion = '5.7.1'
   testContainerVersion = '1.15.3'
+  awsJavaSDKVersion = '1.11.704'
 }
 
 repositories {
@@ -26,8 +27,9 @@ dependencies {
   implementation "org.apache.kafka:connect-api:${kafkaVersion}"
   implementation "org.apache.kafka:connect-transforms:${kafkaVersion}"
   implementation 'com.bettercloud:vault-java-driver:5.1.0' // vault
-  implementation 'com.amazonaws:aws-encryption-sdk-java:2.2.0' // aws
-  implementation 'com.amazonaws:aws-java-sdk-core:1.11.704' // aws
+  implementation "com.amazonaws:aws-encryption-sdk-java:2.2.0" // aws
+  implementation "com.amazonaws:aws-java-sdk-core:${awsJavaSDKVersion}" // aws
+  implementation "com.amazonaws:aws-java-sdk-kms:${awsJavaSDKVersion}" // aws
   implementation 'org.antlr:antlr4-runtime:4.9.2'
 
   // for testing

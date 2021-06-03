@@ -26,11 +26,13 @@ dependencies {
 
   implementation "org.apache.kafka:connect-api:${kafkaVersion}"
   implementation "org.apache.kafka:connect-transforms:${kafkaVersion}"
+  implementation 'org.antlr:antlr4-runtime:4.9.2'
   implementation 'com.bettercloud:vault-java-driver:5.1.0' // vault
   implementation "com.amazonaws:aws-encryption-sdk-java:2.2.0" // aws
   implementation "com.amazonaws:aws-java-sdk-core:${awsJavaSDKVersion}" // aws
   implementation "com.amazonaws:aws-java-sdk-kms:${awsJavaSDKVersion}" // aws
-  implementation 'org.antlr:antlr4-runtime:4.9.2'
+  implementation platform('com.google.cloud:libraries-bom:20.5.0') // gcp
+  implementation 'com.google.cloud:google-cloud-kms' // gcp
 
   // for testing
   testImplementation "org.junit.jupiter:junit-jupiter-api:${junitJupiterVersion}"

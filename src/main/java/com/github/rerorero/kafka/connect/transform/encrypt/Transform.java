@@ -65,6 +65,9 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
 
     @Override
     public void close() {
+        if (cryptoService != null) {
+            cryptoService.close();
+        }
     }
 
     private <R> R doCrypto(

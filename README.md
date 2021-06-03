@@ -5,6 +5,7 @@
 - Encryption and decryption using external key management service. Now it supports:
   - [HashiCopr Vault](https://www.vaultproject.io/docs/secrets/transit)
   - [AWS KMS](https://aws.amazon.com/kms/)
+  - [GCP Cloud KMS](https://cloud.google.com/security-key-management)
 - Encryption and decryption at the field level.
 - You can use [JsonPath](https://github.com/json-path/JsonPath) to specify the fields. NOTE: It has limited support for JsonPath syntax for now, please see [JsonPath Limitations](#jsonpath-limitations).
 - Parse as a Struct when schema present, or a Map in the case of schemaless data.
@@ -15,8 +16,6 @@ Download the jar file from the [release page](https://github.com/rerorero/kafka-
 [This doccument](https://docs.confluent.io/platform/current/connect/transforms/custom.html) would help you.
 
 # Configurations
-
-You can see the example configuration file [here](./e2e/connect_config.json).
 
 #### `type`
 
@@ -29,7 +28,9 @@ Specifies the type designed for the record key or value:
 
 Defines the key management service to encrypt/decrypt. Valid values are:
 
-- `vault`
+- `vault` for Hashicorp Vault
+- `awskms` for Amazon Web Service KMS
+- `gcpkms` for Google Cloud Platform KMS
 
 #### `mode`
 
@@ -55,6 +56,8 @@ All messages are transformed if both are omitted.
 
 ## Configurations for HashiCorp Vault
 
+You can see the example configuration file [here](./e2e/vault_config.json).
+
 #### `vault.url`
 
 URL of the Vault server.
@@ -72,6 +75,8 @@ Specifies the name of the encryption/decryption key to encrypt/decrypt against.
 Specifies the Base64 context for key derivation. This is required if key derivation is enabled.
 
 ## Configurations for AWS KMS
+
+You can see the example configuration file [here](./e2e/awskms_config.json).
 
 #### `awskms.aws_access_key_id`, `awskms.aws_secret_access_key` and `awskms.aws_region`
 
@@ -93,6 +98,26 @@ Specifies [the encryption algorithm](https://aws.github.io/aws-encryption-sdk-ja
 #### `awskms.endpoint`
 
 Specifies the endpoint to access KMS.
+
+## Configurations for GCP Cloud KMS
+
+You can see the example configuration file [here](./e2e/gcpkms_config.json).
+
+#### `gcpkms.key.project_id`
+
+GCP project id for the key ring.
+
+#### `gcpkms.key.location_id`
+
+Location of the key ring,
+
+#### `gcpkms.key.ring_id`
+
+Key ring of the key.
+
+#### `gcpkms.key.key_id`
+
+The key to use for encryption
 
 ## JsonPath Limitations
 

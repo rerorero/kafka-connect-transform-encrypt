@@ -84,6 +84,10 @@ public abstract class AWSKeyManagementService implements Service {
         return out;
     }
 
+    @Override
+    public void close() {
+    }
+
     protected abstract Item callEndpoint(String field, Object item);
 
     public static class EncryptService extends AWSKeyManagementService {

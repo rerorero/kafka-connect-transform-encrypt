@@ -8,6 +8,8 @@ import com.bettercloud.vault.VaultException;
 import com.github.rerorero.kafka.aws.AWSKMSCryptoConfig;
 import com.github.rerorero.kafka.aws.AWSKeyManagementService;
 import com.github.rerorero.kafka.connect.transform.encrypt.condition.Conditions;
+import com.github.rerorero.kafka.gcp.GCPKMSCryptoConfig;
+import com.github.rerorero.kafka.gcp.GCPKeyManagementService;
 import com.github.rerorero.kafka.jsonpath.JsonPathException;
 import com.github.rerorero.kafka.jsonpath.MapSupport;
 import com.github.rerorero.kafka.jsonpath.StructSupport;
@@ -34,7 +36,8 @@ public abstract class Config {
     public static final String SERVICE = "service";
     public static final String SERVICE_VAULT = "vault";
     public static final String SERVICE_AWSKMS = "awskms";
-    private static final OneOfValidator<String> serviceValidator = new OneOfValidator<>(SERVICE_VAULT, SERVICE_AWSKMS);
+    public static final String SERVICE_GCPKMS = "gcpkms";
+    private static final OneOfValidator<String> serviceValidator = new OneOfValidator<>(SERVICE_VAULT, SERVICE_AWSKMS, SERVICE_GCPKMS);
 
     public static final String MODE = "mode";
     public static final String MODE_ENCRYPT = "encrypt";
@@ -65,6 +68,11 @@ public abstract class Config {
     public static final String AWSKMS_ENCRYPTION_ALGORITHM = "awskms.encryption_algorithm";
     public static final String AWSKMS_ENDPOINT = "awskms.endpoint";
 
+    // GCP Cloud KMS
+    public static final String GCPKMS_KEY_PROJECT_ID = "gcpkms.key.project_id";
+    public static final String GCPKMS_KEY_LOCATION_ID = "gcpkms.key.location_id";
+    public static final String GCPKMS_KEY_RING_ID = "gcpkms.key.ring_id";
+    public static final String GCPKMS_KEY_KEY_ID = "gcpkms.key.key_id";
 
     public static final ConfigDef DEF = new ConfigDef()
             // general
@@ -106,7 +114,16 @@ public abstract class Config {
             .define(AWSKMS_ENCRYPTION_ALGORITHM, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.LOW, "The encryption algorithm.")
             .define(AWSKMS_ENDPOINT, ConfigDef.Type.STRING, null,
-                    ConfigDef.Importance.LOW, "(optional) Overrides the URL of the default KMS endpoint with given URL.");
+                    ConfigDef.Importance.LOW, "(optional) Overrides the URL of the default KMS endpoint with given URL.")
+            // GCP Cloud KMS
+            .define(GCPKMS_KEY_PROJECT_ID, ConfigDef.Type.STRING, null,
+                    ConfigDef.Importance.HIGH, "GCP project ID for the key")
+            .define(GCPKMS_KEY_LOCATION_ID, ConfigDef.Type.STRING, null,
+                    ConfigDef.Importance.HIGH, "Location of the keyring")
+            .define(GCPKMS_KEY_RING_ID, ConfigDef.Type.STRING, null,
+                    ConfigDef.Importance.HIGH, "Keyring of the key")
+            .define(GCPKMS_KEY_KEY_ID, ConfigDef.Type.STRING, null,
+                    ConfigDef.Importance.HIGH, "The key to use for encryption");
 
     public abstract Service cryptoService();
 
@@ -156,6 +173,12 @@ public abstract class Config {
         throw new ConfigException("You need to specify both " + CONDITION_FIELD + " and " + CONDITION_EQUALS + " to set condition");
     }
 
+    protected void ensureStringValueExists(SimpleConfig conf, String key, String message) {
+        if (conf.getString(key) == null) {
+            throw new ConfigException(key, null, message);
+        }
+    }
+
     public static class ConfigImpl extends Config {
         private final Service service;
         private final CryptoConfig cryptoConf;
@@ -194,18 +217,16 @@ public abstract class Config {
                 this.service = vaultService(conf);
             } else if (conf.getString(SERVICE).equals(SERVICE_AWSKMS)) {
                 this.service = awsKmsService(conf);
+            } else if (conf.getString(SERVICE).equals(SERVICE_GCPKMS)) {
+                this.service = gcpKmsService(conf);
             } else {
                 throw new ConfigException(SERVICE, conf.getString(SERVICE), "unknown service");
             }
         }
 
         private Service vaultService(SimpleConfig conf) {
-            if (conf.getString(VAULT_URL) == null) {
-                throw new ConfigException(VAULT_URL, null, "Required parameter for " + SERVICE_VAULT + " service");
-            }
-            if (conf.getString(VAULT_KEY_NAME) == null) {
-                throw new ConfigException(VAULT_KEY_NAME, null, "Required parameter for " + SERVICE_VAULT + " service");
-            }
+            ensureStringValueExists(conf, VAULT_URL, "Required parameter for " + SERVICE_VAULT + " service");
+            ensureStringValueExists(conf, VAULT_KEY_NAME, "Required parameter for " + SERVICE_VAULT + " service");
 
             final VaultConfig vc = new VaultConfig().address(conf.getString(VAULT_URL));
             if (conf.getPassword(VAULT_TOKEN) != null) {
@@ -231,9 +252,8 @@ public abstract class Config {
         }
 
         private Service awsKmsService(SimpleConfig conf) {
-            if (conf.getString(AWSKMS_CMK_KEYID) == null) {
-                throw new ConfigException(AWSKMS_CMK_KEYID, null, "Required parameter for " + SERVICE_AWSKMS + " service");
-            }
+            ensureStringValueExists(conf, AWSKMS_CMK_KEYID, "Required parameter for " + SERVICE_AWSKMS + " service");
+
             if (conf.getString(AWSKMS_ENDPOINT) != null && conf.getString(AWSKMS_REGION) == null) {
                 throw new ConfigException(AWSKMS_REGION, null, "Required parameter if " + AWSKMS_ENDPOINT + " is specified");
             }
@@ -267,6 +287,25 @@ public abstract class Config {
                 return new AWSKeyManagementService.EncryptService(config);
             }
             return new AWSKeyManagementService.DecryptService(config);
+        }
+
+        private Service gcpKmsService(SimpleConfig conf) {
+            ensureStringValueExists(conf, GCPKMS_KEY_PROJECT_ID, "Required parameter for " + SERVICE_GCPKMS + " service");
+            ensureStringValueExists(conf, GCPKMS_KEY_LOCATION_ID, "Required parameter for " + SERVICE_GCPKMS + " service");
+            ensureStringValueExists(conf, GCPKMS_KEY_RING_ID, "Required parameter for " + SERVICE_GCPKMS + " service");
+            ensureStringValueExists(conf, GCPKMS_KEY_KEY_ID, "Required parameter for " + SERVICE_GCPKMS + " service");
+
+            final GCPKMSCryptoConfig cryptoConfig = new GCPKMSCryptoConfig(
+                    conf.getString(GCPKMS_KEY_PROJECT_ID),
+                    conf.getString(GCPKMS_KEY_LOCATION_ID),
+                    conf.getString(GCPKMS_KEY_RING_ID),
+                    conf.getString(GCPKMS_KEY_KEY_ID)
+            );
+
+            if (conf.getString(MODE).equals(MODE_ENCRYPT)) {
+                return new GCPKeyManagementService.EncryptService(cryptoConfig);
+            }
+            return new GCPKeyManagementService.DecryptService(cryptoConfig);
         }
     }
 }

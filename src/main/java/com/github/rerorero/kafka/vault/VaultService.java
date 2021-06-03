@@ -52,6 +52,9 @@ public abstract class VaultService<Param> implements Service {
         return results;
     }
 
+    @Override
+    public void close() {}
+
     public static final class EncryptService extends VaultService<EncryptParameter> {
         public EncryptService(VaultClient client, VaultCryptoConfig config) {
             super(client, config);

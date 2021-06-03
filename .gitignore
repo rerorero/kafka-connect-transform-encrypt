@@ -3,3 +3,4 @@ build
 .gradle
 .metals
 .bloop
+gcp_sa.json

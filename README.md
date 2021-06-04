@@ -65,6 +65,7 @@ URL of the Vault server.
 #### `vault.token`
 
 The Vault token used to access [Vault Transit Engine](https://www.vaultproject.io/api/secret/transit).
+You can also specify it with the environment variable `VAULT_TOKEN` instead.
 
 #### `vault.key_name`
 
@@ -81,6 +82,7 @@ You can see the example configuration file [here](./e2e/awskms_config.json).
 #### `awskms.aws_access_key_id`, `awskms.aws_secret_access_key` and `awskms.aws_region`
 
 AWS credentials and the region to access KMS.
+You can also specify them with the environment variable `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` instead.
 
 #### `awskms.cmk_key_id`
 
@@ -101,7 +103,8 @@ Specifies the endpoint to access KMS.
 
 ## Configurations for GCP Cloud KMS
 
-You can see the example configuration file [here](./e2e/gcpkms_config.json).
+See [here](./e2e/gcpkms_config.json) for the example configuration file.
+You can pass the file path to the GCP credential with the environment variable `GOOGLE_APPLICATION_CREDENTIALS`.
 
 #### `gcpkms.key.project_id`
 

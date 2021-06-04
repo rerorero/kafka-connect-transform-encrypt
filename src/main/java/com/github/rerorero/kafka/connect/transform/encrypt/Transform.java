@@ -52,12 +52,17 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
 
     @Override
     public R apply(R record) {
+        final Object opValue = operatingValue(record);
+        if (opValue == null) {
+            return newRecord(record, null);
+        }
+
         Object updated = null;
         if (operatingSchema(record) == null) {
-            final Map<String, Object> org = requireMap(operatingValue(record), "encrypt/decrypt");
+            final Map<String, Object> org = requireMap(opValue, "encrypt/decrypt");
             updated = doCrypto(org, fieldSelector.mapGetters, fieldSelector.mapUpdaters, conditions.mapCondition);
         } else {
-            final Struct org = requireStruct(operatingValue(record), "encrypt/decrypt");
+            final Struct org = requireStruct(opValue, "encrypt/decrypt");
             updated = doCrypto(org, fieldSelector.structGetters, fieldSelector.structUpdaters, conditions.structCondition);
         }
         return newRecord(record, updated);

@@ -183,6 +183,13 @@ class TransformTest {
     }
 
     @Test
+    public void testApplyWithNull() {
+        Transform sut = setUp(Arrays.asList("$.text"), Item.Encoding.STRING, new Conditions());
+        Struct actual = (Struct) sut.apply(record(null, null)).value();
+        assertNull(actual);
+    }
+
+    @Test
     public void testFailureWithInvalidJsonPath() {
         assertThrows(ConfigException.class, () -> setUp(Arrays.asList("text"), Item.Encoding.STRING, new Conditions()));
     }

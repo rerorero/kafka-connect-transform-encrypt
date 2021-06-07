@@ -15,6 +15,10 @@
 Download the jar file from the [release page](https://github.com/rerorero/kafka-connect-transform-encrypt/releases) and copy it into a directory that is under one of the `plugin.path`.
 [This doccument](https://docs.confluent.io/platform/current/connect/transforms/custom.html) would help you.
 
+# Demo
+
+You can try the demo with Debezium + HashiCopr Vault here: [debezium-encrypt-example](https://github.com/rerorero/debezium-encrypt-example).
+
 # Configurations
 
 #### `type`

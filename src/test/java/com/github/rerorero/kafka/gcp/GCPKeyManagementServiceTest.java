@@ -31,6 +31,20 @@ import static org.mockito.Mockito.when;
 class GCPKeyManagementServiceTest {
     private static KeyPair rsaPair;
 
+    private static class TestConfig extends GCPKMSCryptoConfig {
+        private final KeyManagementServiceClient client;
+
+        TestConfig(Optional<String> keyVersion, KeyManagementServiceClient client) {
+            super("project", "us-east1", "keyring", "my-key", keyVersion);
+            this.client = client;
+        }
+
+        @Override
+        KeyManagementServiceClient getKMSClient() {
+            return client;
+        }
+    }
+
     @BeforeAll
     public static void tearUp() throws NoSuchAlgorithmException {
         KeyPairGenerator fact = KeyPairGenerator.getInstance("RSA");
@@ -40,10 +54,9 @@ class GCPKeyManagementServiceTest {
 
     @Test
     void testSymmetricEncrypt() {
-        GCPKMSCryptoConfig config = new GCPKMSCryptoConfig("project", "us-east1", "keyring", "my-key", Optional.of("123"));
         KeyManagementServiceClient cli = mock(KeyManagementServiceClient.class);
+        GCPKMSCryptoConfig config = new TestConfig(Optional.of("123"), cli);
         GCPKeyManagementService.EncryptService sut = new GCPKeyManagementService.EncryptService(config);
-        sut.setClient(cli);
         sut.init();
 
         when(cli.encrypt(config.getEncryptKeyName(), ByteString.copyFromUtf8("Kafka")))
@@ -66,10 +79,9 @@ class GCPKeyManagementServiceTest {
 
     @Test
     void testSymmetricDecrypt() {
-        GCPKMSCryptoConfig config = new GCPKMSCryptoConfig("project", "us-east1", "keyring", "my-key", Optional.empty());
         KeyManagementServiceClient cli = mock(KeyManagementServiceClient.class);
+        GCPKMSCryptoConfig config = new TestConfig(Optional.empty(), cli);
         GCPKeyManagementService.DecryptService sut = new GCPKeyManagementService.DecryptService(config);
-        sut.setClient(cli);
         sut.init();
 
         when(cli.decrypt(config.getKeyName(), ByteString.copyFromUtf8("Kafka")))
@@ -92,10 +104,9 @@ class GCPKeyManagementServiceTest {
 
     @Test
     void testAsymmetricEncrypt() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
-        GCPKMSCryptoConfig config = new GCPKMSCryptoConfig("project", "us-east1", "keyring", "my-key", Optional.of("123"));
         KeyManagementServiceClient cli = mock(KeyManagementServiceClient.class);
+        GCPKMSCryptoConfig config = new TestConfig(Optional.of("123"), cli);
         GCPKeyManagementService.AsymmetricEncryptService sut = new GCPKeyManagementService.AsymmetricEncryptService(config);
-        sut.setClient(cli);
 
         when(cli.getPublicKey(CryptoKeyVersionName.of("project", "us-east1", "keyring", "my-key", "123")))
                 .thenReturn(generatePublicKeyCert());
@@ -119,10 +130,9 @@ class GCPKeyManagementServiceTest {
 
     @Test
     void testAsymmetricDecrypt() {
-        GCPKMSCryptoConfig config = new GCPKMSCryptoConfig("project", "us-east1", "keyring", "my-key", Optional.of("123"));
         KeyManagementServiceClient cli = mock(KeyManagementServiceClient.class);
+        GCPKMSCryptoConfig config = new TestConfig(Optional.of("123"), cli);
         GCPKeyManagementService.AsymmetricDecryptService sut = new GCPKeyManagementService.AsymmetricDecryptService(config);
-        sut.setClient(cli);
         sut.init();
 
         when(cli.asymmetricDecrypt(config.getVersionedKeyName().get(), ByteString.copyFromUtf8("Kafka")))
@@ -155,18 +165,16 @@ class GCPKeyManagementServiceTest {
     @Test
     void testUnableToInitAsymmetricEncryptService() {
         // key version is missing
-        GCPKMSCryptoConfig config = new GCPKMSCryptoConfig("project", "us-east1", "keyring", "my-key", Optional.empty());
+        GCPKMSCryptoConfig config = new TestConfig(Optional.empty(), null);
         GCPKeyManagementService.AsymmetricEncryptService sut = new GCPKeyManagementService.AsymmetricEncryptService(config);
         assertThrows(ClientErrorException.class, () -> sut.init());
     }
 
     @Test
     void testUnableToGetPublicKey() {
-        // key version is missing
-        GCPKMSCryptoConfig config = new GCPKMSCryptoConfig("project", "us-east1", "keyring", "my-key", Optional.of("123"));
-        GCPKeyManagementService.AsymmetricEncryptService sut = new GCPKeyManagementService.AsymmetricEncryptService(config);
         KeyManagementServiceClient cli = mock(KeyManagementServiceClient.class);
-        sut.setClient(cli);
+        GCPKMSCryptoConfig config = new TestConfig(Optional.of("123"), cli);
+        GCPKeyManagementService.AsymmetricEncryptService sut = new GCPKeyManagementService.AsymmetricEncryptService(config);
 
         when(cli.getPublicKey(CryptoKeyVersionName.of("project", "us-east1", "keyring", "my-key", "123")))
                 .thenThrow(new NotFoundException(new RuntimeException(), GrpcStatusCode.of(Status.Code.NOT_FOUND), false));

@@ -4,11 +4,13 @@ import com.github.rerorero.kafka.connect.transform.encrypt.exception.ClientError
 import com.google.api.resourcenames.ResourceName;
 import com.google.cloud.kms.v1.CryptoKeyName;
 import com.google.cloud.kms.v1.CryptoKeyVersionName;
+import com.google.cloud.kms.v1.KeyManagementServiceClient;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.OAEPParameterSpec;
 import javax.crypto.spec.PSource;
+import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.MGF1ParameterSpec;
@@ -64,6 +66,14 @@ public class GCPKMSCryptoConfig {
             return Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
         } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
             throw new ClientErrorException(e);
+        }
+    }
+
+    KeyManagementServiceClient getKMSClient() {
+        try {
+            return KeyManagementServiceClient.create();
+        } catch (IOException e) {
+            throw new ClientErrorException("unable to create Cloud KMS client", e);
         }
     }
 }

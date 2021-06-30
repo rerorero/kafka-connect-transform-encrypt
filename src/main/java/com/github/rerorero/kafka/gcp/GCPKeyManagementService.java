@@ -16,7 +16,6 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.StringReader;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -32,16 +31,12 @@ public abstract class GCPKeyManagementService implements Service {
     protected KeyManagementServiceClient client;
 
     protected GCPKeyManagementService(GCPKMSCryptoConfig config) {
-        try {
-            this.client = KeyManagementServiceClient.create();
-        } catch (IOException e) {
-            throw new ServiceException("unable to initialize Cloud KMS client", e);
-        }
+        this.client = config.getKMSClient();
     }
 
-
     @Override
-    public void init() {}
+    public void init() {
+    }
 
     @Override
     public void close() {
@@ -211,10 +206,5 @@ public abstract class GCPKeyManagementService implements Service {
         } else {
             throw new ClientErrorException("type '" + item.getClass().getTypeName() + "' for field '" + field + "' is not supported");
         }
-    }
-
-    // visible for testing
-    void setClient(KeyManagementServiceClient client) {
-        this.client = client;
     }
 }

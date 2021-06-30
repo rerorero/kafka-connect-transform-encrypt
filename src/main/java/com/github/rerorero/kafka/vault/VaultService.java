@@ -32,6 +32,14 @@ public abstract class VaultService<Param> implements Service {
     protected abstract List<String> invokeCrypto(List<Param> params);
 
     @Override
+    public void init() {
+    }
+
+    @Override
+    public void close() {
+    }
+
+    @Override
     public <F> Map<F, Item> doCrypto(Map<F, Object> items) {
         List<Pair<F, Object>> list = new ArrayList<>();
         items.forEach((key, item) -> {
@@ -51,9 +59,6 @@ public abstract class VaultService<Param> implements Service {
 
         return results;
     }
-
-    @Override
-    public void close() {}
 
     public static final class EncryptService extends VaultService<EncryptParameter> {
         public EncryptService(VaultClient client, VaultCryptoConfig config) {
@@ -106,7 +111,8 @@ public abstract class VaultService<Param> implements Service {
 
         @Override
         protected Item newItemResult(String result) {
-            byte[] bytes = Base64.getDecoder().decode(result);;
+            byte[] bytes = Base64.getDecoder().decode(result);
+            ;
             return new Item.PlainBytes(bytes);
         }
 

@@ -48,6 +48,14 @@ public abstract class AWSKeyManagementService implements Service {
 
 
     @Override
+    public void init() {
+    }
+
+    @Override
+    public void close() {
+    }
+
+    @Override
     public <F> Map<F, Item> doCrypto(Map<F, Object> items) {
         final List<CompletableFuture<Pair<F, Item>>> futureList = new ArrayList<>();
         items.forEach((field, item) -> {
@@ -82,10 +90,6 @@ public abstract class AWSKeyManagementService implements Service {
         });
 
         return out;
-    }
-
-    @Override
-    public void close() {
     }
 
     protected abstract Item callEndpoint(String field, Object item);

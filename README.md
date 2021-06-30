@@ -3,7 +3,7 @@
 [Kafka Connect Transformation](https://kafka.apache.org/documentation/#connect_transforms) (SMT) to encrypt/decrypt fields of records with key management services.
 
 - Encryption and decryption using external key management service. Now it supports:
-  - [HashiCopr Vault](https://www.vaultproject.io/docs/secrets/transit)
+  - [HashiCorp Vault](https://www.vaultproject.io/docs/secrets/transit)
   - [AWS KMS](https://aws.amazon.com/kms/)
   - [GCP Cloud KMS](https://cloud.google.com/security-key-management)
 - Encryption and decryption at the field level.

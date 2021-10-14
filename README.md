@@ -58,6 +58,11 @@ When both are set, the transformation is performed only if the value of the fiel
 
 All messages are transformed if both are omitted.
 
+#### `asymmetric` (optional)
+
+Specifies whether the key to encrypt/decrypt is asymmetric. Default is `false` (symmetric).
+Currently only `gcpkms` supports the asymmetric enc/decryption.
+
 ## Configurations for HashiCorp Vault
 
 You can see the example configuration file [here](./e2e/vault_config.json).
@@ -125,6 +130,10 @@ Key ring of the key.
 #### `gcpkms.key.key_id`
 
 The key to use for encryption
+
+#### `gcpkms.key.key_version_id` (optional)
+
+The version of the key. This is required when `asymmetric` is `true` because Cloud KMS doesn't support automatic key rotation for asymmetric keys.
 
 ## JsonPath Limitations
 

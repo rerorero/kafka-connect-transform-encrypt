@@ -53,6 +53,8 @@ public abstract class Config {
     public static final String CONDITION_FIELD = "condition.field";
     public static final String CONDITION_EQUALS = "condition.equals";
 
+    public static final String ASYMMETRIC = "asymmetric";
+
     // Vault
     public static final String VAULT_URL = "vault.url";
     public static final String VAULT_TOKEN = "vault.token";
@@ -73,6 +75,7 @@ public abstract class Config {
     public static final String GCPKMS_KEY_LOCATION_ID = "gcpkms.key.location_id";
     public static final String GCPKMS_KEY_RING_ID = "gcpkms.key.ring_id";
     public static final String GCPKMS_KEY_KEY_ID = "gcpkms.key.key_id";
+    public static final String GCPKMS_KEY_KEY_VERSION_ID = "gcpkms.key.key_version_id";
 
     public static final ConfigDef DEF = new ConfigDef()
             // general
@@ -91,6 +94,8 @@ public abstract class Config {
             .define(CONDITION_EQUALS, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.LOW, "(optional) Specifies the condition for the transform."
                             + "When condition.* are set, transform is performed only if the value of the JsonPath field specified by " + CONDITION_FIELD + " matches " + CONDITION_EQUALS)
+            .define(ASYMMETRIC, ConfigDef.Type.BOOLEAN, false,
+                    ConfigDef.Importance.LOW, "Specifies whether the key to crypt/decrypt is asymmetric. Default is false.")
             // Vault
             .define(VAULT_URL, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.HIGH, "URL of the Vault server.")
@@ -123,7 +128,9 @@ public abstract class Config {
             .define(GCPKMS_KEY_RING_ID, ConfigDef.Type.STRING, null,
                     ConfigDef.Importance.HIGH, "Keyring of the key")
             .define(GCPKMS_KEY_KEY_ID, ConfigDef.Type.STRING, null,
-                    ConfigDef.Importance.HIGH, "The key to use for encryption");
+                    ConfigDef.Importance.HIGH, "The key to use for encryption")
+            .define(GCPKMS_KEY_KEY_VERSION_ID, ConfigDef.Type.STRING, null,
+                    ConfigDef.Importance.LOW, "(optional) The key version to use for encryption. Required if " + ASYMMETRIC + "=true.");
 
     public abstract Service cryptoService();
 
@@ -299,13 +306,23 @@ public abstract class Config {
                     conf.getString(GCPKMS_KEY_PROJECT_ID),
                     conf.getString(GCPKMS_KEY_LOCATION_ID),
                     conf.getString(GCPKMS_KEY_RING_ID),
-                    conf.getString(GCPKMS_KEY_KEY_ID)
+                    conf.getString(GCPKMS_KEY_KEY_ID),
+                    Optional.ofNullable(conf.getString(GCPKMS_KEY_KEY_VERSION_ID))
             );
 
-            if (conf.getString(MODE).equals(MODE_ENCRYPT)) {
-                return new GCPKeyManagementService.EncryptService(cryptoConfig);
+            if (conf.getBoolean(ASYMMETRIC)) {
+                ensureStringValueExists(conf, GCPKMS_KEY_KEY_VERSION_ID, "Required when " + ASYMMETRIC + " is true");
+                if (conf.getString(MODE).equals(MODE_ENCRYPT)) {
+                    return new GCPKeyManagementService.AsymmetricEncryptService(cryptoConfig);
+                }
+                return new GCPKeyManagementService.AsymmetricDecryptService(cryptoConfig);
+
+            } else {
+                if (conf.getString(MODE).equals(MODE_ENCRYPT)) {
+                    return new GCPKeyManagementService.EncryptService(cryptoConfig);
+                }
+                return new GCPKeyManagementService.DecryptService(cryptoConfig);
             }
-            return new GCPKeyManagementService.DecryptService(cryptoConfig);
         }
     }
 }

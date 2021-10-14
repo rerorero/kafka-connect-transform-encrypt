@@ -44,6 +44,8 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
         this.fieldSelector = c.fieldSelector();
         this.cryptoConfig = c.cryptoCOnfig();
         this.conditions = c.conditions();
+
+        this.cryptoService.init();
     }
 
     protected Config newConfig(Map<String, ?> props) {

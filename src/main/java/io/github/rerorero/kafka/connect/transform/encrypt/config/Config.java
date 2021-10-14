@@ -11,8 +11,8 @@ import io.github.rerorero.kafka.connect.transform.encrypt.condition.Conditions;
 import io.github.rerorero.kafka.gcp.GCPKMSCryptoConfig;
 import io.github.rerorero.kafka.gcp.GCPKeyManagementService;
 import io.github.rerorero.kafka.jsonpath.JsonPathException;
-import io.github.rerorero.kafka.jsonpath.MapSupport;
-import io.github.rerorero.kafka.jsonpath.StructSupport;
+import io.github.rerorero.kafka.jsonpath.MapAccessor;
+import io.github.rerorero.kafka.jsonpath.StructAccessor;
 import io.github.rerorero.kafka.kms.CryptoConfig;
 import io.github.rerorero.kafka.kms.Item;
 import io.github.rerorero.kafka.kms.Service;
@@ -154,10 +154,10 @@ public abstract class Config {
         FieldSelector fs = new FieldSelector();
         jsonPaths.forEach(path -> {
             try {
-                fs.mapGetters.put(path, MapSupport.newGetter(path));
-                fs.mapUpdaters.put(path, MapSupport.newUpdater(path));
-                fs.structGetters.put(path, StructSupport.newGetter(path));
-                fs.structUpdaters.put(path, StructSupport.newUpdater(path));
+                fs.mapGetters.put(path, new MapAccessor.Getter(path));
+                fs.mapUpdaters.put(path, new MapAccessor.Updater(path));
+                fs.structGetters.put(path, new StructAccessor.Getter(path));
+                fs.structUpdaters.put(path, new StructAccessor.Updater(path));
             } catch (JsonPathException e) {
                 throw new ConfigException(FIELDS, path, e.getMessage());
             }

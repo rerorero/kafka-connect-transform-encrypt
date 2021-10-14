@@ -6,12 +6,12 @@ import io.github.rerorero.kafka.connect.transform.encrypt.config.Config;
 import io.github.rerorero.kafka.connect.transform.encrypt.config.FieldSelector;
 import io.github.rerorero.kafka.connect.transform.encrypt.exception.ServerErrorException;
 import io.github.rerorero.kafka.connect.transform.encrypt.exception.ServiceException;
+import io.github.rerorero.kafka.jsonpath.Accessor;
+import io.github.rerorero.kafka.jsonpath.JsonPathException;
 import io.github.rerorero.kafka.kms.CryptoConfig;
 import io.github.rerorero.kafka.kms.Item;
 import io.github.rerorero.kafka.kms.Service;
 import io.github.rerorero.kafka.util.Pair;
-import io.github.rerorero.kafka.jsonpath.JsonPath;
-import io.github.rerorero.kafka.jsonpath.JsonPathException;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.connect.connector.ConnectRecord;
 import org.apache.kafka.connect.data.Schema;
@@ -79,8 +79,8 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
 
     private <R> R doCrypto(
             R value,
-            Map<String, JsonPath.Getter<R>> getters,
-            Map<String, JsonPath.Updater<R>> updaters,
+            Map<String, Accessor.Getter<R>> getters,
+            Map<String, Accessor.Updater<R>> updaters,
             Condition<R> condition
     ) {
         try {
@@ -116,7 +116,7 @@ public abstract class Transform<R extends ConnectRecord<R>> implements Transform
             // Apply Updater for each JsonPath
             R updated = value;
             for (Map.Entry<String, Map<String, Object>> kv : newValues.entrySet()) {
-                JsonPath.Updater<R> updater = updaters.get(kv.getKey());
+                Accessor.Updater<R> updater = updaters.get(kv.getKey());
                 updated = updater.run(updated, kv.getValue());
             }
 

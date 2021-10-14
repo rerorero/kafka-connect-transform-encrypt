@@ -1,8 +1,8 @@
 package io.github.rerorero.kafka.connect.transform.encrypt.condition;
 
-import io.github.rerorero.kafka.jsonpath.JsonPath;
-import io.github.rerorero.kafka.jsonpath.MapSupport;
-import io.github.rerorero.kafka.jsonpath.StructSupport;
+import io.github.rerorero.kafka.jsonpath.Accessor;
+import io.github.rerorero.kafka.jsonpath.MapAccessor;
+import io.github.rerorero.kafka.jsonpath.StructAccessor;
 import org.apache.kafka.connect.data.Struct;
 
 import java.util.Map;
@@ -11,13 +11,13 @@ public class Conditions {
     public final Condition<Map<String, Object>> mapCondition;
     public final Condition<Struct> structCondition;
 
-    private final JsonPath.Getter<Map<String, Object>> mapGetter;
-    private final JsonPath.Getter<Struct> structGetter;
+    private final MapAccessor.Getter mapGetter;
+    private final StructAccessor.Getter structGetter;
 
     public Conditions(String jsonPath, String comparison) {
-        this.mapGetter = MapSupport.newGetter(jsonPath);
+        this.mapGetter = new MapAccessor.Getter(jsonPath);
         this.mapCondition = r -> checkCondition(mapGetter, r, comparison);
-        this.structGetter = StructSupport.newGetter(jsonPath);
+        this.structGetter = new StructAccessor.Getter(jsonPath);
         this.structCondition = r -> checkCondition(structGetter, r, comparison);
     }
 
@@ -29,7 +29,7 @@ public class Conditions {
         this.structCondition = r -> true;
     }
 
-    private <R> boolean checkCondition(JsonPath.Getter<R> getter, R record, String comparison) {
+    private <R> boolean checkCondition(Accessor.Getter<R> getter, R record, String comparison) {
         Map<String, Object> values = getter.run(record);
         if (values.isEmpty()) {
             return false;

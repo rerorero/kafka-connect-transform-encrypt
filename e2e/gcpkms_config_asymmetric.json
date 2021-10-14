@@ -1,0 +1,38 @@
+{
+  "name": "datagen-pageviews-gcpkms",
+  "config": {
+    "connector.class": "io.confluent.kafka.connect.datagen.DatagenConnector",
+    "kafka.topic": "pageviews-gcpkms",
+    "quickstart": "pageviews",
+    "key.converter": "org.apache.kafka.connect.storage.StringConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "max.interval": 500,
+    "iterations": 100,
+    "tasks.max": "1",
+
+    "transforms": "encrypt,decrypt",
+
+    "transforms.encrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.encrypt.service": "gcpkms",
+    "transforms.encrypt.mode": "encrypt",
+    "transforms.encrypt.fields": "$.userid,$.pageid",
+    "transforms.encrypt.asymmetric": true,
+    "transforms.encrypt.gcpkms.key.project_id": "$GCP_PROJECT_ID",
+    "transforms.encrypt.gcpkms.key.location_id": "global",
+    "transforms.encrypt.gcpkms.key.ring_id": "test-ring",
+    "transforms.encrypt.gcpkms.key.key_id": "test-asymmetric-key",
+    "transforms.encrypt.gcpkms.key.key_version_id": "1",
+
+    "transforms.decrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.decrypt.service": "gcpkms",
+    "transforms.decrypt.mode": "decrypt",
+    "transforms.decrypt.fields": "$.userid,$.pageid",
+    "transforms.decrypt.asymmetric": true,
+    "transforms.decrypt.gcpkms.key.project_id": "$GCP_PROJECT_ID",
+    "transforms.decrypt.gcpkms.key.location_id": "global",
+    "transforms.decrypt.gcpkms.key.ring_id": "test-ring",
+    "transforms.decrypt.gcpkms.key.key_id": "test-asymmetric-key",
+    "transforms.decrypt.gcpkms.key.key_version_id": "1"
+  }
+}

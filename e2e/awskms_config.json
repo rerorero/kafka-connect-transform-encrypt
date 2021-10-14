@@ -13,7 +13,7 @@
 
     "transforms": "encrypt,decrypt",
 
-    "transforms.encrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.encrypt.type": "io.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
     "transforms.encrypt.service": "awskms",
     "transforms.encrypt.mode": "encrypt",
     "transforms.encrypt.fields": "$.userid,$.pageid",
@@ -24,7 +24,7 @@
     "transforms.encrypt.awskms.aws_region": "us-west-1",
     "transforms.encrypt.awskms.endpoint": "http://awskms:8080/",
 
-    "transforms.decrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.decrypt.type": "io.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
     "transforms.decrypt.service": "awskms",
     "transforms.decrypt.mode": "decrypt",
     "transforms.decrypt.fields": "$.userid,$.pageid",

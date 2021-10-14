@@ -61,6 +61,7 @@ All messages are transformed if both are omitted.
 #### `asymmetric` (optional)
 
 Specifies whether the key to encrypt/decrypt is asymmetric. Default is `false` (symmetric).
+Currently only `gcpkms` supports the asymmetric enc/decryption.
 
 ## Configurations for HashiCorp Vault
 

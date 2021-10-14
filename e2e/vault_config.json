@@ -13,7 +13,7 @@
 
     "transforms": "encrypt,decrypt",
 
-    "transforms.encrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.encrypt.type": "io.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
     "transforms.encrypt.service": "vault",
     "transforms.encrypt.mode": "encrypt",
     "transforms.encrypt.fields": "$.userid,$.pageid",
@@ -21,7 +21,7 @@
     "transforms.encrypt.vault.token": "dev",
     "transforms.encrypt.vault.key_name": "mykey",
 
-    "transforms.decrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.decrypt.type": "io.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
     "transforms.decrypt.service": "vault",
     "transforms.decrypt.mode": "decrypt",
     "transforms.decrypt.fields": "$.userid",

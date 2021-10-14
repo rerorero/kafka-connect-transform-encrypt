@@ -13,7 +13,7 @@
 
     "transforms": "encrypt,decrypt",
 
-    "transforms.encrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.encrypt.type": "io.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
     "transforms.encrypt.service": "gcpkms",
     "transforms.encrypt.mode": "encrypt",
     "transforms.encrypt.fields": "$.userid,$.pageid",
@@ -24,7 +24,7 @@
     "transforms.encrypt.gcpkms.key.key_id": "test-asymmetric-key",
     "transforms.encrypt.gcpkms.key.key_version_id": "1",
 
-    "transforms.decrypt.type": "com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
+    "transforms.decrypt.type": "io.github.rerorero.kafka.connect.transform.encrypt.Transform$Value",
     "transforms.decrypt.service": "gcpkms",
     "transforms.decrypt.mode": "decrypt",
     "transforms.decrypt.fields": "$.userid,$.pageid",

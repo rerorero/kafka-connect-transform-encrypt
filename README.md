@@ -25,8 +25,8 @@ You can try the demo with Debezium + HashiCopr Vault here: [debezium-encrypt-exa
 
 Specifies the type designed for the record key or value:
 
-- `com.github.rerorero.kafka.connect.transform.encrypt.Transform$Key`
-- `com.github.rerorero.kafka.connect.transform.encrypt.Transform$Value`
+- `io.github.rerorero.kafka.connect.transform.encrypt.Transform$Key`
+- `io.github.rerorero.kafka.connect.transform.encrypt.Transform$Value`
 
 #### `service`
 
